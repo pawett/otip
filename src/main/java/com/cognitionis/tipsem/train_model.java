@@ -1,585 +1,524 @@
 package com.cognitionis.tipsem;
 
-/**
- * train_model.java
- * @author Hector Llorens
- * @since Sep 6, 2010, 14:08:35 PM
- *
- * ONLY TO BE DISTRIBUTED IN ADMINS VERSION
- * THE REGULAR VERSION WILL HAVE THE PRE-TRAINED MODELS
- *
- */
-import com.cognitionis.external_tools.*;
-import com.cognitionis.feature_builder.*;
-import com.cognitionis.utils_basickit.FileUtils;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+
+import com.cognitionis.external_tools.CRF;
+import com.cognitionis.external_tools.IMachineLearningMethod;
+import com.cognitionis.external_tools.SVM;
+import com.cognitionis.feature_builder.Classification;
+import com.cognitionis.feature_builder.TimexNormalization;
+import com.cognitionis.nlp_files.PipesFile;
 import com.cognitionis.nlp_files.TempEvalFiles;
 import com.cognitionis.nlp_files.XMLFile;
-import com.cognitionis.nlp_files.PipesFile;
-import com.cognitionis.nlp_files.annotation_scorers.*;
+import com.cognitionis.nlp_files.annotation_scorers.Score;
+import com.cognitionis.nlp_files.annotation_scorers.Scorer;
+import com.cognitionis.tasks.EventProcessing;
+import com.cognitionis.tasks.TemporalRelationProcessing;
+import com.cognitionis.tasks.TimexProcessing;
 import com.cognitionis.timeml_basickit.TML_file_utils;
-import java.io.*;
-import java.util.*;
+import com.cognitionis.tipsem.helpers.FileConverter;
+import com.cognitionis.tipsem.helpers.FilesHelper;
+import com.cognitionis.tipsem.helpers.Logger;
+import com.cognitionis.utils_basickit.FileUtils;
 
 public class train_model {
 
-    public static String localDatasetPath = FileUtils.getApplicationPath() + "program-data/TIMEE-training/";
-    public static HashMap<String, String> category_files = new HashMap<String, String>() {
+	private File train_dir;
+	private File test_dir;
+	private String approach;
+	private String lang;
+	private boolean rebuild_dataset;
+	private TemporalInformationProcessingStrategy strategy;
+	public train_model(File train_dir, File test_dir, String approach,
+			String lang, boolean rebuild_dataset, 
+			TemporalInformationProcessingStrategy strategy)
+	{
+		this.train_dir = train_dir;
+		this.test_dir = test_dir;
+		this.approach = approach;
+		this.lang = lang;
+		this.rebuild_dataset = rebuild_dataset;
+		this.strategy = strategy;
 
-        {
-            put("e-t", "base-segmentation.e-t-link-features");
-            put("e-dct", "base-segmentation.e-dct-link-features");
-            put("e-main", "base-segmentation.e-main-link-features");
-            put("e-sub", "base-segmentation.e-sub-link-features");
-        }
-    };
+	}
+	
+	public train_model(File train_dir, File test_dir, String approach,
+			String lang, boolean rebuild_dataset, 
+			IMachineLearningMethod method)
+	{
+		this.train_dir = train_dir;
+		this.test_dir = test_dir;
+		this.approach = approach;
+		this.lang = lang;
+		this.rebuild_dataset = rebuild_dataset;
+		this.strategy = new TemporalInformationProcessingStrategy();
+		TimexProcessing timexP = new TimexProcessing();
+		timexP.setClassification(method);
+		timexP.setNormalization(method);
+		timexP.setRecognition(method);
+		strategy.setTimexProcessing(timexP);
+		
+		EventProcessing eventP = new EventProcessing();
+		eventP.setClassification(method);
+		eventP.setRecognition(method);
+		strategy.setEventProcessing(eventP);
+		
+		TemporalRelationProcessing temporalRelationP = new TemporalRelationProcessing();
+		temporalRelationP.setEvent_DCT(method);
+		temporalRelationP.setEvent_timex(method);
+		temporalRelationP.setMain_events(method);
+		temporalRelationP.setSubordinate_events(method);
+		
 
-    public static void Recognition_tml(File train_dir, File test_dir, String elem, String approach, String lang, String method, String re_build_dataset) {
-        String output = "";
-        PipesFile nlpfile;
-        Scorer scorer = new Scorer();
-        try {
-            File dir = new File(train_dir.getParent() + File.separator + "experiments_tml" + File.separator + approach + File.separator);
-            if (!dir.exists()) {
-                if (!dir.mkdirs()) {  // mkdir only creates one, mkdirs creates many parent dirs if needed
-                    throw new Exception("Directory not created...");
-                }
-            }
-            // Check for features files (train/test)
-            if (re_build_dataset.equalsIgnoreCase("true") || !(new File(train_dir.getParent() + File.separator + train_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
-                FileConverter.tmldir2features(train_dir, approach, lang);
-            }
-            if (re_build_dataset.equalsIgnoreCase("true") || !(new File(test_dir.getParent() + File.separator + test_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
-                FileConverter.tmldir2features(test_dir, approach, lang);
-            }
+	}
 
-            String model = dir + File.separator + approach + "_rec_" + elem + "_" + lang + "." + method + "model";
-            System.out.println("model: " + model);
-            output = TempEvalFiles.merge_extents(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
+	public  String localDatasetPath = FileUtils.getApplicationPath() + "program-data/TIMEE-training/";
+	public  HashMap<String, String> category_files = new HashMap<String, String>() {
 
-            if (method.equals("CRF")) {
-                output = CRF.train(output, approach + "_rec_" + elem + ".template");
-            }
-            if (method.equals("SVM")) {
-                output = SVM.train(output, approach + "_rec_" + elem + ".template");
-            }
-            (new File(output)).renameTo(new File(model));
-            //(new File(output)).renameTo(new File((new File(output)).getCanonicalPath().substring((new File(output)).getName().indexOf(approach))));
-            //test Model
-            // Hacer opcional por parametro...
-            //getFeatures(lang,"test/entities");
-            System.out.println("Test..." + model);
-            if (method.equals("CRF")) {
-                output = CRF.test(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", model);
-            }
-            if (method.equals("SVM")) {
-                output = SVM.test(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", model);
-            }
-            nlpfile = new PipesFile(output);
-            ((PipesFile) nlpfile).isWellFormedOptimist();
-            String temp = PipesFile.IOB2check(nlpfile);
-            (new File(temp)).renameTo(new File(output));
-
-            String annot = dir + File.separator + (new File(output)).getName();
-            (new File(output)).renameTo(new File(annot));
-            nlpfile = new PipesFile(annot);
-            ((PipesFile) nlpfile).isWellFormedOptimist();
-
-            output = TempEvalFiles.merge_extents(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
-            (new File(output)).renameTo(new File(annot + "-key"));
+		{
+			put("e-t", "base-segmentation.e-t-link-features");
+			put("e-dct", "base-segmentation.e-dct-link-features");
+			put("e-main", "base-segmentation.e-main-link-features");
+			put("e-sub", "base-segmentation.e-sub-link-features");
+		}
+	};
 
 
-            // TempEvalFiles-2 results
-            System.out.println("Results: " + approach);
-            //TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
+	public void Recognition_tml(String elem) {
+		String output = "";
+		PipesFile nlpfile;
+		Scorer scorer = new Scorer();
+		try {
+			File dir = new File(train_dir.getParent() + File.separator + "experiments_tml" + File.separator + approach + File.separator);
+			if (!dir.exists()) {
+				if (!dir.mkdirs()) {  // mkdir only creates one, mkdirs creates many parent dirs if needed
+					throw new Exception("Directory not created...");
+				}
+			}
+			// Check for features files (train/test)
+			if (rebuild_dataset || !(new File(train_dir.getParent() + File.separator + train_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
+				FileConverter.tmldir2features(train_dir, approach, lang);
+			}
+			if (rebuild_dataset || !(new File(test_dir.getParent() + File.separator + test_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
+				FileConverter.tmldir2features(test_dir, approach, lang);
+			}
 
-            // AnnotScore results
-            Score score = scorer.score(nlpfile, annot + "-key", nlpfile.getColumn("element\\(IOB2\\)"), -1);
-            //score.print("attribs");
-            score.print("detail");
-            //score.print(printopts);
-            //score.print("");
+			String model = dir + File.separator + approach + "_rec_" + elem + "_" + lang + "." + strategy.getTimexProcessing().getRecognition() + "model";
+			Logger.Write("model: " + model);
+			output = TempEvalFiles.merge_extents(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
+
+			output = strategy.getTimexProcessing().getRecognition().Train(output, approach + "_rec_" + elem + ".template");
+
+			(new File(output)).renameTo(new File(model));
+			//(new File(output)).renameTo(new File((new File(output)).getCanonicalPath().substring((new File(output)).getName().indexOf(approach))));
+			//test Model
+			// Hacer opcional por parametro...
+			//getFeatures(lang,"test/entities");
+			Logger.Write("Test..." + model);
+
+			output = strategy.getTimexProcessing().getRecognition().Test(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", model);
+
+			nlpfile = new PipesFile(output);
+			((PipesFile) nlpfile).isWellFormedOptimist();
+			String temp = PipesFile.IOB2check(nlpfile);
+			(new File(temp)).renameTo(new File(output));
+
+			String annot = dir + File.separator + (new File(output)).getName();
+			(new File(output)).renameTo(new File(annot));
+			nlpfile = new PipesFile(annot);
+			((PipesFile) nlpfile).isWellFormedOptimist();
+
+			output = TempEvalFiles.merge_extents(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
+			(new File(output)).renameTo(new File(annot + "-key"));
 
 
-        } catch (Exception e) {
-            System.err.println("Errors found (Experimenter):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
-        }
-    }
+			// TempEvalFiles-2 results
+			Logger.Write("Results: " + approach);
+			//TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
 
-    public static void Classification_tml(File train_dir, File test_dir, String elem, String approach, String lang, String method, String re_build_dataset) {
-        String output = "", key;
-        Scorer scorer = new Scorer();
-        try {
-            File dir = new File(train_dir.getParent() + File.separator + "experiments_tml" + File.separator + approach + File.separator);
-            if (!dir.exists()) {
-                if (!dir.mkdirs()) {  // mkdir only creates one, mkdirs creates many parent dirs if needed
-                    throw new Exception("Directory not created...");
-                }
-            }
-
-            // Check for features files (train/test)
-            if (re_build_dataset.equalsIgnoreCase("true") || !(new File(train_dir.getParent() + File.separator + train_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
-                FileConverter.tmldir2features(train_dir, approach, lang);
-            }
-            if (re_build_dataset.equalsIgnoreCase("true") || !(new File(test_dir.getParent() + File.separator + test_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
-                FileConverter.tmldir2features(test_dir, approach, lang);
-            }
+			// AnnotScore results
+			Score score = scorer.score(nlpfile, annot + "-key", nlpfile.getColumn("element\\(IOB2\\)"), -1);
+			//score.print("attribs");
+			score.print("detail");
+			//score.print(printopts);
+			//score.print("");
 
 
-            String model = dir + File.separator + approach + "_class_" + elem + "_" + lang + "." + method + "model";
+		} catch (Exception e) {
+			Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e);  
+		}
+	}
 
-            output = TempEvalFiles.merge_extents(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
-            output = TempEvalFiles.merge_attribs(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-" + elem, train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-attributes.tab", elem);
-            output = Classification.get_classik(output, lang);
+	public void Classification_tml(String elem) {
+		String output = "", key;
+		Scorer scorer = new Scorer();
+		try {
+			File dir = FilesHelper.GetFileAndCreateDir(train_dir.getParent() + File.separator + "experiments_tml" + File.separator + approach + File.separator);
+
+			// Check for features files (train/test)
+			if (rebuild_dataset || !(new File(train_dir.getParent() + File.separator + train_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
+				FileConverter.tmldir2features(train_dir, approach, lang);
+			}
+			if (rebuild_dataset || !(new File(test_dir.getParent() + File.separator + test_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
+				FileConverter.tmldir2features(test_dir, approach, lang);
+			}
 
 
-            if (method.equals("CRF")) {
-                output = CRF.train(output, approach + "_class_" + elem + ".template");
-            }
-            if (method.equals("SVM")) {
-                output = SVM.train(output, approach + "_class_" + elem + ".template");
-            }
-            (new File(output)).renameTo(new File(model));
-            //(new File(output)).renameTo(new File((new File(output)).getCanonicalPath().substring((new File(output)).getName().indexOf(approach))));
-            //test Model
-            // Hacer opcional por parametro...
-            //getFeatures(lang,"test/entities");
-            //System.out.println("Test...");
-            output = TempEvalFiles.merge_extents(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
-            output = Classification.get_classik(output, lang);
+			String model = dir + File.separator + approach + "_class_" + elem + "_" + lang + "." + strategy.getTimexProcessing().getClassification() + "model";
 
-            if (method.equals("CRF")) {
-                output = CRF.test(output, model);
-            }
-            if (method.equals("SVM")) {
-                output = SVM.test(output, model);
-            }
+			output = TempEvalFiles.merge_extents(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
+			output = TempEvalFiles.merge_attribs(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-" + elem, train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-attributes.tab", elem);
+			output = Classification.get_classik(output, lang);
 
-            String annot = dir + File.separator + (new File(output)).getName();
-            (new File(output)).renameTo(new File(annot));
-            /*PipesFile nlpannot = new PipesFile();
+			output = strategy.getTimexProcessing().getClassification().Train(output, approach + "_class_" + elem + ".template");
+
+			(new File(output)).renameTo(new File(model));
+			//(new File(output)).renameTo(new File((new File(output)).getCanonicalPath().substring((new File(output)).getName().indexOf(approach))));
+			//test Model
+			// Hacer opcional por parametro...
+			//getFeatures(lang,"test/entities");
+			//System.out.println("Test...");
+			output = TempEvalFiles.merge_extents(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
+			output = Classification.get_classik(output, lang);
+
+			output = strategy.getTimexProcessing().getClassification().Test(output, model);
+
+			String annot = dir + File.separator + (new File(output)).getName();
+			(new File(output)).renameTo(new File(annot));
+			/*PipesFile nlpannot = new PipesFile();
             nlpannot.loadFile(new File(annot));
             ((PipesFile) nlpannot).isWellFormedOptimist();*/
 
 
-            key = TempEvalFiles.merge_extents(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
-            key = TempEvalFiles.merge_attribs(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-" + elem, test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-attributes.tab", elem);
-            key = Classification.get_classik(key, lang);
+			key = TempEvalFiles.merge_extents(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
+			key = TempEvalFiles.merge_attribs(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-" + elem, test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-attributes.tab", elem);
+			key = Classification.get_classik(key, lang);
 
 
-            // TempEvalFiles-2 results
-            System.out.println("Results: " + approach);
-            //TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
+			// TempEvalFiles-2 results
+			Logger.Write("Results: " + approach);
+			//TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
 
-            // AnnotScore results
-            Score score = scorer.score_class(annot, key, -1);
-            //score.print("attribs");
-            //score.print("detail");
-            //score.print(printopts);
-            score.print("");
+			// AnnotScore results
+			Score score = scorer.score_class(annot, key, -1);
+			//score.print("attribs");
+			//score.print("detail");
+			//score.print(printopts);
+			score.print("");
 
-        } catch (Exception e) {
-            System.err.println("Errors found (Experimenter):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
-        }
-    }
+		} catch (Exception e) {
+			Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e); 
+		}
+	}
 
-    public static void NormalizationType_tml(File train_dir, File test_dir, String elem, String approach, String lang, String method, String re_build_dataset) {
-        String output = "", key;
-        Scorer scorer = new Scorer();
-        try {
-            File dir = new File(train_dir.getParent() + File.separator + "experiments_tml" + File.separator + approach + File.separator);
-            if (!dir.exists()) {
-                if (!dir.mkdirs()) {  // mkdir only creates one, mkdirs creates many parent dirs if needed
-                    throw new Exception("Directory not created...");
-                }
-            }
-            // Check for features files (train/test)
-            if (re_build_dataset.equalsIgnoreCase("true") || !(new File(train_dir.getParent() + File.separator + train_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
-                FileConverter.tmldir2features(train_dir, approach, lang);
-            }
-            if (re_build_dataset.equalsIgnoreCase("true") || !(new File(test_dir.getParent() + File.separator + test_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
-                FileConverter.tmldir2features(test_dir, approach, lang);
-            }
+	public void NormalizationType_tml(String elem) {
+		String output = "", key;
+		Scorer scorer = new Scorer();
+		try {
+			File dir = FilesHelper.GetFileAndCreateDir(train_dir.getParent() + File.separator + "experiments_tml" + File.separator + approach + File.separator);
 
-            String model = dir + File.separator + approach + "_timen_" + elem + "_" + lang + "." + method + "model";
-            output = TempEvalFiles.merge_extents(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
-            String features = TempEvalFiles.merge_attribs(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-" + elem, train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-attributes.tab", elem);
-            output = Classification.get_classik(features, lang);
-            output = TimexNormalization.getTIMEN(features, output, lang);
+			// Check for features files (train/test)
+			if (rebuild_dataset || !(new File(train_dir.getParent() + File.separator + train_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
+				FileConverter.tmldir2features(train_dir, approach, lang);
+			}
+			if (rebuild_dataset || !(new File(test_dir.getParent() + File.separator + test_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
+				FileConverter.tmldir2features(test_dir, approach, lang);
+			}
 
-            if (method.equals("CRF")) {
-                output = CRF.train(output, approach + "_timen_" + elem + ".template");
-            }
-            if (method.equals("SVM")) {
-                output = SVM.train(output, approach + "_timen_" + elem + ".template");
-            }
-            (new File(output)).renameTo(new File(model));
+			String model = dir + File.separator + approach + "_timen_" + elem + "_" + lang + "." + strategy.getTimexProcessing().getNormalization() + "model";
+			output = TempEvalFiles.merge_extents(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
+			String features = TempEvalFiles.merge_attribs(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-" + elem, train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-attributes.tab", elem);
+			output = Classification.get_classik(features, lang);
+			output = TimexNormalization.getTIMEN(features, output, lang);
+
+			output = strategy.getTimexProcessing().getNormalization().Train(output, approach + "_timen_" + elem + ".template");
+
+			(new File(output)).renameTo(new File(model));
+
+			features = TempEvalFiles.merge_extents(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
+			output = Classification.get_classik(features, lang);
+			output = TimexNormalization.getTIMEN(features, output, lang);
+
+			output = strategy.getTimexProcessing().getNormalization().Test(output, model);
 
 
+			String annot = dir + File.separator + (new File(output)).getName();
+			(new File(output)).renameTo(new File(annot));
 
-            features = TempEvalFiles.merge_extents(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
-            output = Classification.get_classik(features, lang);
-            output = TimexNormalization.getTIMEN(features, output, lang);
-
-            if (method.equals("CRF")) {
-                output = CRF.test(output, model);
-            }
-            if (method.equals("SVM")) {
-                output = SVM.test(output, model);
-            }
-
-            String annot = dir + File.separator + (new File(output)).getName();
-            (new File(output)).renameTo(new File(annot));
-
-            key = TempEvalFiles.merge_extents(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
-            String keyfeatures = TempEvalFiles.merge_attribs(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-" + elem, test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-attributes.tab", elem);
-            key = Classification.get_classik(keyfeatures, lang);
-            key = TimexNormalization.getTIMEN(keyfeatures, key, lang);
+			key = TempEvalFiles.merge_extents(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
+			String keyfeatures = TempEvalFiles.merge_attribs(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-" + elem, test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-attributes.tab", elem);
+			key = Classification.get_classik(keyfeatures, lang);
+			key = TimexNormalization.getTIMEN(keyfeatures, key, lang);
 
 
-            // TempEvalFiles-2 results
-            System.out.println("Results: " + approach);
-            //TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
-            // AnnotScore results
-            Score score = scorer.score_class(annot, key, -1);
-            score.print("");
+			// TempEvalFiles-2 results
+			Logger.Write("Results: " + approach);
+			//TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
+			// AnnotScore results
+			Score score = scorer.score_class(annot, key, -1);
+			score.print("");
 
 
-        } catch (Exception e) {
-            System.err.println("Errors found (Experimenter):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
-        }
-    }
+		} catch (Exception e) {
+			Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e);
+		}
+	}
 
-    public static void Categorization_tml(File train_dir, File test_dir, String elem, String approach, String lang, String ml_method, String re_build_dataset) {
-        String output = "", key;
-        Scorer scorer = new Scorer();
-        try {
-            if (!elem.matches("e-(t|dct|main|sub)")) {
-                throw new Exception("elem must match:e-(t|dct|main|sub). Found: " + elem);
-            }
+	public void Categorization_tml(String elem) {
+		String output = "", key;
+		Scorer scorer = new Scorer();
+		try {
+			if (!elem.matches("e-(t|dct|main|sub)")) {
+				throw new Exception("elem must match:e-(t|dct|main|sub). Found: " + elem);
+			}
 
-            File dir = new File(train_dir.getParent() + File.separator + "experiments_tml" + File.separator + approach + File.separator);
-            if (!dir.exists()) {
-                if (!dir.mkdirs()) {  // mkdir only creates one, mkdirs creates many parent dirs if needed
-                    throw new Exception("Directory not created...");
-                }
-            }
-            // Check for features files (train/test)
-            if (re_build_dataset.equalsIgnoreCase("true") || !(new File(train_dir.getParent() + File.separator + train_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
-                FileConverter.tmldir2features(train_dir, approach, lang);
-            }
-            if (re_build_dataset.equalsIgnoreCase("true") || !(new File(test_dir.getParent() + File.separator + test_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
-                FileConverter.tmldir2features(test_dir, approach, lang);
-            }
+			File dir = FilesHelper.GetFileAndCreateDir(train_dir.getParent() + File.separator + "experiments_tml" + File.separator + approach + File.separator);
 
-            String model = dir + File.separator + approach + "_categ_" + elem + "_" + lang + "." + ml_method + "model";
-            output = train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get(elem) + "-annotationKey";
-            if (ml_method.equals("CRF")) {
-                output = CRF.train(output, approach + "_categ_" + elem + ".template");
-            }
-            if (ml_method.equals("SVM")) {
-                output = SVM.train(output, approach + "_categ_" + elem + ".template");
-            }
-            (new File(output)).renameTo(new File(model));
+			// Check for features files (train/test)
+			if (rebuild_dataset || !(new File(train_dir.getParent() + File.separator + train_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
+				FileConverter.tmldir2features(train_dir, approach, lang);
+			}
+			if (rebuild_dataset || !(new File(test_dir.getParent() + File.separator + test_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
+				FileConverter.tmldir2features(test_dir, approach, lang);
+			}
+
+			String model = dir + File.separator + approach + "_categ_" + elem + "_" + lang + "." + strategy.getTemporalRelationProcessing().getEvent_timex() + "model";
+			output = train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get(elem) + "-annotationKey";
+
+			output = strategy.getTemporalRelationProcessing().getEvent_timex().Train(output, approach + "_categ_" + elem + ".template");
+
+			(new File(output)).renameTo(new File(model));
 
 
-            output = test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get(elem);
+			output = test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get(elem);
 
-            if (ml_method.equals("CRF")) {
-                output = CRF.test(output, model);
-            }
-            if (ml_method.equals("SVM")) {
-                output = SVM.test(output, model);
-            }
+			output = strategy.getTemporalRelationProcessing().getEvent_timex().Test(output, model);
 
-            String annot = dir + File.separator + (new File(output)).getName();
-            (new File(output)).renameTo(new File(annot));
-            /*PipesFile nlpannot = new PipesFile();
+
+			String annot = dir + File.separator + (new File(output)).getName();
+			(new File(output)).renameTo(new File(annot));
+			/*PipesFile nlpannot = new PipesFile();
             nlpannot.loadFile(new File(annot));
             ((PipesFile) nlpannot).isWellFormedOptimist();
-             */
-            key = test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get(elem) + "-annotationKey";
+			 */
+			key = test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get(elem) + "-annotationKey";
 
 
-            // TempEvalFiles-2 results
-            System.out.println("Results: " + approach);
-            //TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
+			// TempEvalFiles-2 results
+			Logger.Write("Results: " + approach);
+			//TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
 
-            // AnnotScore results
-            Score score = scorer.score_class(annot, key, -1);
-            //score.print("attribs");
-            //score.print("detail");
-            //score.print(printopts);
-            score.print("");
+			// AnnotScore results
+			Score score = scorer.score_class(annot, key, -1);
+			//score.print("attribs");
+			//score.print("detail");
+			//score.print(printopts);
+			score.print("");
 
-        } catch (Exception e) {
-            System.err.println("Errors found (Experimenter):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
-        }
+		} catch (Exception e) {
+			Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e);
+		}
 
-    }
+	}
 
-    // test normalization...
-    public static void Normalization_tml(File test_dir, String elem, String approach, String lang, String re_build_dataset) {
-        String output = "", key;
-        Scorer scorer = new Scorer();
-        try {
-            File dir = new File(test_dir.getParent() + File.separator + "experiments_tml" + File.separator + approach + File.separator);
-            if (!dir.exists()) {
-                if (!dir.mkdirs()) {  // mkdir only creates one, mkdirs creates many parent dirs if needed
-                    throw new Exception("Directory not created...");
-                }
-            }
-            // Check for features files (train/test)
-            if (re_build_dataset.equalsIgnoreCase("true") || !(new File(test_dir.getParent() + File.separator + test_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
-                FileConverter.tmldir2features(test_dir, approach, lang);
-            }
-            output = TempEvalFiles.merge_extents(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
-            String features = TempEvalFiles.merge_attribs(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-" + elem, test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-attributes.tab", elem);
-            output = Classification.get_classik(features, lang);
-            output = TimexNormalization.getTIMEN(features, output, lang);
-            output = TimexNormalization.get_normalized_values(output, lang);
-            System.out.println(output);
-            String annot = dir + File.separator + (new File(output)).getName();
-            (new File(output)).renameTo(new File(annot));
-            key = TempEvalFiles.merge_extents(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
-            String keyfeatures = TempEvalFiles.merge_attribs(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-" + elem, test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-attributes.tab", elem);
-            key = Classification.get_classik(keyfeatures, lang);
-            key = TimexNormalization.getTIMEN(keyfeatures, key, lang);
-            key = TimexNormalization.get_key_normalized_values(key);
-            // TempEvalFiles-2 results
-            System.out.println("Testset Results: " + approach);
-            //TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
-            // AnnotScore results
-            Score score = scorer.score_class(annot, key, -1);
-            score.print("detail");
-        } catch (Exception e) {
-            System.err.println("Errors found (Experimenter):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
-        }
-    }
+	// test normalization...
+	public void Normalization_tml(String elem) {
+		String output = "", key;
+		Scorer scorer = new Scorer();
+		try {
+			File dir = FilesHelper.GetFileAndCreateDir(test_dir.getParent() + File.separator + "experiments_tml" + File.separator + approach + File.separator);
 
-    public static void full_tml(File train_dir, File test_dir, String approach, String lang, String re_build_dataset) {
-        String output = "";
-        try {
-            File dir_trainmodels = new File(train_dir.getCanonicalPath() + "-models-" + approach + File.separator);
-            if (!dir_trainmodels.exists()) {
-                if (!dir_trainmodels.mkdirs()) {  // mkdir only creates one, mkdirs creates many parent dirs if needed
-                    throw new Exception("Directory not created...");
-                }
-            }
+			// Check for features files (train/test)
+			if (rebuild_dataset || !(new File(test_dir.getParent() + File.separator + test_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
+				FileConverter.tmldir2features(test_dir, approach, lang);
+			}
+			output = TempEvalFiles.merge_extents(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
+			String features = TempEvalFiles.merge_attribs(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-" + elem, test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-attributes.tab", elem);
+			output = Classification.get_classik(features, lang);
+			output = TimexNormalization.getTIMEN(features, output, lang);
+			output = TimexNormalization.get_normalized_values(output, lang);
+			Logger.Write(output);
+			String annot = dir + File.separator + (new File(output)).getName();
+			(new File(output)).renameTo(new File(annot));
+			key = TempEvalFiles.merge_extents(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
+			String keyfeatures = TempEvalFiles.merge_attribs(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-" + elem, test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-attributes.tab", elem);
+			key = Classification.get_classik(keyfeatures, lang);
+			key = TimexNormalization.getTIMEN(keyfeatures, key, lang);
+			key = TimexNormalization.get_key_normalized_values(key);
+			// TempEvalFiles-2 results
+			Logger.Write("Testset Results: " + approach);
+			//TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
+			// AnnotScore results
+			Score score = scorer.score_class(annot, key, -1);
+			score.print("detail");
+		} catch (Exception e) {
+			Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e);
+			System.exit(1);
+		}
+	}
 
-            File dir_test_annotation = new File(test_dir.getCanonicalPath() + "-" + approach + File.separator);
-            if (!dir_test_annotation.exists()) {
-                if (!dir_test_annotation.mkdirs()) {  // mkdir only creates one, mkdirs creates many parent dirs if needed
-                    throw new Exception("Directory not created...");
-                }
-            }
-
-            File dir_test_te3input = new File(test_dir.getCanonicalPath() + "-input-" + approach + File.separator);
-            if (!dir_test_te3input.exists()) {
-                if (!dir_test_te3input.mkdirs()) {  // mkdir only creates one, mkdirs creates many parent dirs if needed
-                    throw new Exception("Directory not created...");
-                }
-            }
-
-            // Check for features files (train/test)
-            if (re_build_dataset.equalsIgnoreCase("true") || !(new File(train_dir.getParent() + File.separator + train_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
-                FileConverter.tmldir2features(train_dir, approach, lang);
-            }
-            /*if (re_build_dataset.equalsIgnoreCase("true") || !(new File(test_dir.getParent() + File.separator + test_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
+	public void full_tml() {
+		String output = "";
+		try 
+		{
+			File dir_trainmodels = FilesHelper.GetFileAndCreateDir(train_dir.getCanonicalPath() + "-models-" + approach + File.separator);
+			// Check for features files (train/test)
+			if (rebuild_dataset || !(new File(train_dir.getParent() + File.separator + train_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
+				FileConverter.tmldir2features(train_dir, approach, lang);
+			}
+			/*if (re_build_dataset.equalsIgnoreCase("true") || !(new File(test_dir.getParent() + File.separator + test_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
             FileConverter.tmldir2features(test_dir, approach, lang);
             }*/
 
-            String model = dir_trainmodels + File.separator + approach + "_rec_timex_" + lang + ".CRFmodel";
-            // check if already trained
-            if (!(new File(model)).exists()) {
-                //timex
-                System.out.println("model: " + model);
-                output = TempEvalFiles.merge_extents(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "timex-extents.tab", "timex");
-                output = CRF.train(output, approach + "_rec_timex.template");
-                (new File(output)).renameTo(new File(model));
+			String model = dir_trainmodels + File.separator + approach + "_rec_timex_" + lang + ".CRFmodel";
+			// check if already trained
+			if (!(new File(model)).exists()) 
+			{
+				TrainTimex(dir_trainmodels, model);
+				// event
+				TrainEvents(dir_trainmodels);
+				// links
+				TrainLinks(dir_trainmodels);
+			}
 
-                model = dir_trainmodels + File.separator + approach + "_class_timex_" + lang + ".SVMmodel";
-                output = TempEvalFiles.merge_extents(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "timex-extents.tab", "timex");
-                output = TempEvalFiles.merge_attribs(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-timex", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "timex-attributes.tab", "timex");
-                output = Classification.get_classik(output, lang);
-                output = SVM.train(output, approach + "_class_timex.template");
-                (new File(output)).renameTo(new File(model));
-                    
-                model = dir_trainmodels + File.separator + approach + "_timen_timex_" + lang + ".SVMmodel";
-                output = TempEvalFiles.merge_extents(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "timex-extents.tab", "timex");
-                String features = TempEvalFiles.merge_attribs(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-timex", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "timex-attributes.tab", "timex");
-                output = Classification.get_classik(features, lang);
-                output = TimexNormalization.getTIMEN(features, output, lang);
-                output = SVM.train(output, approach + "_timen_timex.template");
-                (new File(output)).renameTo(new File(model));
+			// test
 
+			File dir_test_annotation = FilesHelper.GetFileAndCreateDir(test_dir.getCanonicalPath() + "-" + approach + File.separator);
+			File dir_test_te3input = FilesHelper.GetFileAndCreateDir(test_dir.getCanonicalPath() + "-input-" + approach + File.separator);
 
-                // event
-                model = dir_trainmodels + File.separator + approach + "_rec_event_" + lang + ".CRFmodel";
-                System.out.println("model: " + model);
-                output = TempEvalFiles.merge_extents(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "event-extents.tab", "event");
-                output = CRF.train(output, approach + "_rec_event.template");
-                (new File(output)).renameTo(new File(model));
+			File[] tmlfiles = test_dir.listFiles(FileUtils.onlyFilesFilter);
+			for (int i = 0; i < tmlfiles.length; i++) 
+			{
+				XMLFile nlpfile =  FilesHelper.GetNLPFile(tmlfiles[i].getAbsolutePath());
 
-                model = dir_trainmodels + File.separator + approach + "_class_event_" + lang + ".SVMmodel";
-                output = TempEvalFiles.merge_extents(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "event-extents.tab", "event");
-                output = TempEvalFiles.merge_attribs(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-event", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "event-attributes.tab", "event");
-                output = Classification.get_classik(output, lang);
-                output = SVM.train(output, approach + "_class_event.template");
-                (new File(output)).renameTo(new File(model));
+				String te3input = TML_file_utils.TML2TE3(nlpfile.getFile().getCanonicalPath());
+				String basefile = dir_test_te3input + File.separator + new File(te3input).getName();
+				(new File(te3input)).renameTo(new File(basefile));
+				nlpfile= FilesHelper.GetNLPFile(basefile);
+				nlpfile.setLanguage(lang);
+				TIP tip = new TIP(nlpfile, "te3input", approach, lang, null, null, dir_trainmodels.getCanonicalPath(), new TemporalInformationProcessingStrategy());
+				output = tip.Annotate();
+				(new File(output)).renameTo(new File(dir_test_annotation + File.separator + tmlfiles[i].getName()));
+			}
 
-                // links
-                model = dir_trainmodels + File.separator + approach + "_categ_e-t_" + lang + ".SVMmodel";
-                output = train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get("e-t") + "-annotationKey";
-                output = SVM.train(output, approach + "_categ_e-t.template");
-                (new File(output)).renameTo(new File(model));
+		} catch (Exception e) 
+		{
+			Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e);
+			System.exit(1);
+		}
+	}
 
-                model = dir_trainmodels + File.separator + approach + "_categ_e-dct_" + lang + ".SVMmodel";
-                output = train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get("e-dct") + "-annotationKey";
-                output = SVM.train(output, approach + "_categ_e-dct.template");
-                (new File(output)).renameTo(new File(model));
+	private void TrainLinks(File dir_trainmodels) throws IOException {
+		String output;
+		String model;
+		model = dir_trainmodels + File.separator + approach + "_categ_e-t_" + lang + ".SVMmodel";
+		output = train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get("e-t") + "-annotationKey";
+		output = strategy.getTemporalRelationProcessing().getEvent_timex().Train(output, approach + "_categ_e-t.template");
+		(new File(output)).renameTo(new File(model));
 
-                model = dir_trainmodels + File.separator + approach + "_categ_e-main_" + lang + ".CRFmodel";
-                output = train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get("e-main") + "-annotationKey";
-                output = CRF.train(output, approach + "_categ_e-main.template");
-                (new File(output)).renameTo(new File(model));
+		model = dir_trainmodels + File.separator + approach + "_categ_e-dct_" + lang + ".SVMmodel";
+		output = train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get("e-dct") + "-annotationKey";
+		output = strategy.getTemporalRelationProcessing().getEvent_DCT().Train(output, approach + "_categ_e-dct.template");
+		(new File(output)).renameTo(new File(model));
 
-                model = dir_trainmodels + File.separator + approach + "_categ_e-sub_" + lang + ".CRFmodel";
-                output = train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get("e-sub") + "-annotationKey";
-                output = CRF.train(output, approach + "_categ_e-sub.template");
-                (new File(output)).renameTo(new File(model));
-            }
+		model = dir_trainmodels + File.separator + approach + "_categ_e-main_" + lang + ".CRFmodel";
+		output = train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get("e-main") + "-annotationKey";
+		output = strategy.getTemporalRelationProcessing().getMain_events().Train(output, approach + "_categ_e-main.template");
+		(new File(output)).renameTo(new File(model));
 
-            // test
-            File[] tmlfiles = test_dir.listFiles(FileUtils.onlyFilesFilter);
-            for (int i = 0; i < tmlfiles.length; i++) {
-                XMLFile nlpfile = new XMLFile(tmlfiles[i].getAbsolutePath(),null);
-                if (!nlpfile.getExtension().equalsIgnoreCase("tml")) {
-                    nlpfile.overrideExtension("tml");
-                }
-                if (!nlpfile.isWellFormatted()) {
-                    throw new Exception("File: " + nlpfile.getFile() + " is not a valid TimeML (.tml) XML file.");
-                }
-                String te3input = TML_file_utils.TML2TE3(nlpfile.getFile().getCanonicalPath());
-                String basefile = dir_test_te3input + File.separator + new File(te3input).getName();
-                (new File(te3input)).renameTo(new File(basefile));
-                nlpfile=new XMLFile(basefile,null);
-                nlpfile.setLanguage(lang);
-                output = TIP.annotate(nlpfile, "te3input", approach, lang, null, null, dir_trainmodels.getCanonicalPath());
-                (new File(output)).renameTo(new File(dir_test_annotation + File.separator + tmlfiles[i].getName()));
-            }
+		model = dir_trainmodels + File.separator + approach + "_categ_e-sub_" + lang + ".CRFmodel";
+		output = train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get("e-sub") + "-annotationKey";
+		output = strategy.getTemporalRelationProcessing().getSubordinate_events().Train(output, approach + "_categ_e-sub.template");
+		(new File(output)).renameTo(new File(model));
+	}
 
-        } catch (Exception e) {
-            System.err.println("Errors found (Experimenter):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
-        }
-    }
+	private void TrainEvents(File dir_trainmodels) throws IOException {
+		String output;
+		String model;
+		model = dir_trainmodels + File.separator + approach + "_rec_event_" + lang + ".CRFmodel";
+		System.out.println("model: " + model);
+		output = TempEvalFiles.merge_extents(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "event-extents.tab", "event");
+		output = strategy.getEventProcessing().getRecognition().Train(output, approach + "_rec_event.template");
+		(new File(output)).renameTo(new File(model));
 
-    public static void idcat_tml(File train_dir, File test_dir, String approach, String lang, String re_build_dataset, String strategy) {
-        String output = "";
-        try {
-            File dir_trainmodels = new File(train_dir.getCanonicalPath() + "-models-" + approach + File.separator);
-            if (!dir_trainmodels.exists()) {
-                if (!dir_trainmodels.mkdirs()) {  // mkdir only creates one, mkdirs creates many parent dirs if needed
-                    throw new Exception("Directory not created...");
-                }
-            }
+		model = dir_trainmodels + File.separator + approach + "_class_event_" + lang + ".SVMmodel";
+		output = TempEvalFiles.merge_extents(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "event-extents.tab", "event");
+		output = TempEvalFiles.merge_attribs(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-event", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "event-attributes.tab", "event");
+		output = Classification.get_classik(output, lang);
+		output = strategy.getEventProcessing().getClassification().Train(output, approach + "_class_event.template");
+		(new File(output)).renameTo(new File(model));
+	}
 
-            File dir_test_annotation = new File(test_dir.getCanonicalPath() + "-" + approach + "-links-"+ strategy + File.separator);
-            if (!dir_test_annotation.exists()) {
-                if (!dir_test_annotation.mkdirs()) {  // mkdir only creates one, mkdirs creates many parent dirs if needed
-                    throw new Exception("Directory not created...");
-                }
-            }
+	private void TrainTimex(File dir_trainmodels, String model) throws IOException {
+		String output;
+		//timex
+		Logger.Write("model: " + model);
+		output = TempEvalFiles.merge_extents(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "timex-extents.tab", "timex");
+		output = strategy.getTimexProcessing().getRecognition().Train(output, approach + "_rec_timex.template");
+		(new File(output)).renameTo(new File(model));
 
-            File dir_test_te3input = new File(test_dir.getCanonicalPath() + "-input4links-" + approach + File.separator);
-            if (!dir_test_te3input.exists()) {
-                if (!dir_test_te3input.mkdirs()) {  // mkdir only creates one, mkdirs creates many parent dirs if needed
-                    throw new Exception("Directory not created...");
-                }
-            }
+		model = dir_trainmodels + File.separator + approach + "_class_timex_" + lang + ".SVMmodel";
+		output = TempEvalFiles.merge_extents(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "timex-extents.tab", "timex");
+		output = TempEvalFiles.merge_attribs(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-timex", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "timex-attributes.tab", "timex");
+		output = Classification.get_classik(output, lang);
+		output = strategy.getTimexProcessing().getClassification().Train(output, approach + "_class_timex.template");
+		(new File(output)).renameTo(new File(model));
 
-            // Check for features files (train/test)
-            if (re_build_dataset.equalsIgnoreCase("true") || !(new File(train_dir.getParent() + File.separator + train_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
-                FileConverter.tmldir2features(train_dir, approach, lang);
-            }
-            /*if (re_build_dataset.equalsIgnoreCase("true") || !(new File(test_dir.getParent() + File.separator + test_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
+		model = dir_trainmodels + File.separator + approach + "_timen_timex_" + lang + ".SVMmodel";
+		output = TempEvalFiles.merge_extents(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "timex-extents.tab", "timex");
+		String features = TempEvalFiles.merge_attribs(train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features-annotationKey-timex", train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "timex-attributes.tab", "timex");
+		output = Classification.get_classik(features, lang);
+		output = TimexNormalization.getTIMEN(features, output, lang);
+		output = strategy.getTimexProcessing().getNormalization().Train(output, approach + "_timen_timex.template");
+		(new File(output)).renameTo(new File(model));
+	}
+
+	public void idcat_tml(String strategy) {
+		String output = "";
+		try {
+			File dir_trainmodels = FilesHelper.GetFileAndCreateDir(train_dir.getCanonicalPath() + "-models-" + approach + File.separator);
+			File dir_test_annotation = FilesHelper.GetFileAndCreateDir(test_dir.getCanonicalPath() + "-" + approach + "-links-"+ strategy + File.separator);
+			File dir_test_te3input = FilesHelper.GetFileAndCreateDir(test_dir.getCanonicalPath() + "-input4links-" + approach + File.separator);
+
+			// Check for features files (train/test)
+			if (rebuild_dataset || !(new File(train_dir.getParent() + File.separator + train_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) 
+			{
+				FileConverter.tmldir2features(train_dir, approach, lang);
+			}
+			/*if (re_build_dataset.equalsIgnoreCase("true") || !(new File(test_dir.getParent() + File.separator + test_dir.getName() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features")).exists()) {
             FileConverter.tmldir2features(test_dir, approach, lang);
             }*/
 
-            String model = dir_trainmodels + File.separator + approach + "_categ_e-t_" + lang + ".SVMmodel";
-            // check if already trained
-            if (!(new File(model)).exists() && !strategy.equalsIgnoreCase("super-baseline")) {
-                // links
-                model = dir_trainmodels + File.separator + approach + "_categ_e-t_" + lang + ".SVMmodel";
-                output = train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get("e-t") + "-annotationKey";
-                output = SVM.train(output, approach + "_categ_e-t.template");
-                (new File(output)).renameTo(new File(model));
+			String model = dir_trainmodels + File.separator + approach + "_categ_e-t_" + lang + ".SVMmodel";
+			// check if already trained
+			if (!(new File(model)).exists() && !strategy.equalsIgnoreCase("super-baseline")) 
+			{
+				TrainLinks(dir_trainmodels);
+			}
 
-                model = dir_trainmodels + File.separator + approach + "_categ_e-dct_" + lang + ".SVMmodel";
-                output = train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get("e-dct") + "-annotationKey";
-                output = SVM.train(output, approach + "_categ_e-dct.template");
-                (new File(output)).renameTo(new File(model));
+			// test
+			File[] tmlfiles = test_dir.listFiles(FileUtils.onlyFilesFilter);
+			for (int i = 0; i < tmlfiles.length; i++) 
+			{
+				XMLFile nlpfile = FilesHelper.GetNLPFile(tmlfiles[i].getAbsolutePath());
 
-                model = dir_trainmodels + File.separator + approach + "_categ_e-main_" + lang + ".CRFmodel";
-                output = train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get("e-main") + "-annotationKey";
-                output = CRF.train(output, approach + "_categ_e-main.template");
-                (new File(output)).renameTo(new File(model));
+				String onlyEntitiesInput = TML_file_utils.TML2onlyEntities(nlpfile.getFile().getCanonicalPath());
+				String basefile = dir_test_te3input + File.separator + new File(onlyEntitiesInput).getName();
+				(new File(onlyEntitiesInput)).renameTo(new File(basefile));
+				nlpfile= FilesHelper.GetNLPFile(basefile);
+				nlpfile.setLanguage(lang);
+				TIP tip = new TIP(nlpfile,null, approach, lang, null,null, dir_trainmodels.getCanonicalPath(),null);
+				output = tip.annotate_links(strategy);
+				(new File(output)).renameTo(new File(dir_test_annotation + File.separator + tmlfiles[i].getName()));
+			}
 
-                model = dir_trainmodels + File.separator + approach + "_categ_e-sub_" + lang + ".CRFmodel";
-                output = train_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get("e-sub") + "-annotationKey";
-                output = CRF.train(output, approach + "_categ_e-sub.template");
-                (new File(output)).renameTo(new File(model));
-            }
-
-            // test
-            File[] tmlfiles = test_dir.listFiles(FileUtils.onlyFilesFilter);
-            for (int i = 0; i < tmlfiles.length; i++) {
-                XMLFile nlpfile = new XMLFile(tmlfiles[i].getAbsolutePath(),null);
-                if (!nlpfile.getExtension().equalsIgnoreCase("tml")) {
-                    nlpfile.overrideExtension("tml");
-                }
-                if (!nlpfile.isWellFormatted()) {
-                    throw new Exception("File: " + nlpfile.getFile() + " is not a valid TimeML (.tml) XML file.");
-                }
-                String onlyEntitiesInput = TML_file_utils.TML2onlyEntities(nlpfile.getFile().getCanonicalPath());
-                String basefile = dir_test_te3input + File.separator + new File(onlyEntitiesInput).getName();
-                (new File(onlyEntitiesInput)).renameTo(new File(basefile));
-                nlpfile=new XMLFile(basefile,null);
-                nlpfile.setLanguage(lang);
-                output = TIP.annotate_links(nlpfile, approach, lang, dir_trainmodels.getCanonicalPath(),strategy);
-                (new File(output)).renameTo(new File(dir_test_annotation + File.separator + tmlfiles[i].getName()));
-            }
-
-        } catch (Exception e) {
-            System.err.println("Errors found (Experimenter):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
-        }
-    }
+		} catch (Exception e) 
+		{
+			Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e);
+			System.exit(1);
+		}
+	}
 
 }

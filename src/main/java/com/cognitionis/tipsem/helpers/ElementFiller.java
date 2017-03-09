@@ -1,11 +1,21 @@
-package com.cognitionis.tipsem;
+package com.cognitionis.tipsem.helpers;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 import com.cognitionis.nlp_files.PipesFile;
-import com.cognitionis.nlp_files.parentical_parsers.*;
-import com.cognitionis.timeml_basickit.*;
+import com.cognitionis.nlp_files.parentical_parsers.SyntColParser;
+import com.cognitionis.nlp_files.parentical_parsers.SyntColSBarTMPRoleParser;
+import com.cognitionis.timeml_basickit.Element;
+import com.cognitionis.timeml_basickit.Event;
+import com.cognitionis.timeml_basickit.Link;
+import com.cognitionis.timeml_basickit.Timex;
 import com.cognitionis.utils_basickit.XmlAttribs;
-import java.io.*;
-import java.util.*;
 
 /**
  * @author Hector Llorens
@@ -78,7 +88,7 @@ public class ElementFiller {
                             if (ommit_re != null && ((Timex) inElem).get_expression().matches(ommit_re)) {
                                 ((Timex) inElem).set_type("Omitted");
                                 ((Timex) inElem).set_value("Omitted");
-                                System.out.println("omit: " + ((Timex) inElem).get_expression());
+                                Logger.Write("omit: " + ((Timex) inElem).get_expression());
                             }
                             if (((Timex) inElem).isReference()) {
                                 lastReference = ((Timex) inElem).get_id();
@@ -315,11 +325,8 @@ public class ElementFiller {
             }
 
         } catch (Exception e) {
-            System.err.println("Errors found (TempEval):\n\t" + e.toString() + " (Reading line " + linen + " " + features_annotated.getFile() + ")\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
+            Logger.WriteError("Errors found (TempEval):\n\t" + e.toString() + " (Reading line " + linen + " " + features_annotated.getFile() + ")\n", e);
+            System.exit(1);  
         }
     }
 

@@ -1,25 +1,43 @@
-package com.cognitionis.tipsem;
+package com.cognitionis.tipsem.helpers;
 
-import com.cognitionis.feature_builder.BaseTokenFeatures;
-import com.cognitionis.utils_basickit.FileUtils;
-import com.cognitionis.utils_basickit.StringUtils;
-import com.cognitionis.nlp_files.NLPFile;
-import com.cognitionis.nlp_files.XMLFile;
-import com.cognitionis.nlp_files.TempEvalFiles;
-import com.cognitionis.nlp_files.PipesFile;
-import com.cognitionis.nlp_files.PlainFile;
-import com.cognitionis.timeml_basickit.Link;
-import com.cognitionis.timeml_basickit.Timex;
-import com.cognitionis.timeml_basickit.Event;
-import com.cognitionis.timeml_basickit.comparators.AscINT_eiid_Comparator;
-import com.cognitionis.timeml_basickit.comparators.AscINT_lid_Comparator;
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+
+import com.cognitionis.feature_builder.BaseTokenFeatures;
+import com.cognitionis.nlp_files.NLPFile;
+import com.cognitionis.nlp_files.PipesFile;
+import com.cognitionis.nlp_files.PlainFile;
+import com.cognitionis.nlp_files.TabFile;
+import com.cognitionis.nlp_files.TempEvalFiles;
+import com.cognitionis.nlp_files.XMLFile;
+import com.cognitionis.timeml_basickit.Event;
+import com.cognitionis.timeml_basickit.Link;
+import com.cognitionis.timeml_basickit.TML_file_utils;
+import com.cognitionis.timeml_basickit.Timex;
+import com.cognitionis.timeml_basickit.comparators.AscINT_eiid_Comparator;
+import com.cognitionis.timeml_basickit.comparators.AscINT_lid_Comparator;
+import com.cognitionis.utils_basickit.FileUtils;
+import com.cognitionis.utils_basickit.StringUtils;
 
 /**
  * @author Hector Llorens
@@ -809,4 +827,238 @@ public class FileConverter {
         return DCTs;
     }
 
+    
+    public static String[] ConvertTextToFile(String[] input_files, String input_text) throws IOException {
+		// Convert input text to a file if necessary
+		if (input_text != null && input_text.length() > 0) {
+			System.err.println("TIPSem text: " + input_text);
+			// Save text to a default file
+			//String tmpfile = FileUtils.getApplicationPath() + "program-data/tmp/tmp" + dateFormat.format(ExecTime);
+			final DateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd-HH.mm.ss.SSS");
+			String tmpfile = "tmp" + dateFormat.format(new Date());
+			BufferedWriter outfile = new BufferedWriter(new FileWriter(tmpfile));
+			try {
+				outfile.write(input_text + "\n");
+			} finally {
+
+				if (outfile != null) {
+					outfile.close();
+				}
+				input_files = new String[1];
+				input_files[0] = tmpfile;
+			}
+		}
+		return input_files;
+	}
+    
+    public static void ConvertRecognitionToTML(String[] input_files ,String lang) throws Exception {
+		if (input_files.length != 1) {
+		    throw new Exception("One and only one base-segmentation.tab file is expected.");
+		}
+		File f = new File(input_files[0]);
+		if (!f.exists() || !f.isFile() || f.length()<1) {
+		    throw new Exception("The input must be a non-empty file.");
+		}
+		    // Obtain a piped equivalent
+		    PipesFile pipesfile = new PipesFile(f.getAbsolutePath());
+		    pipesfile.setLanguage(lang);
+		    if (!pipesfile.isWellFormedOptimist()) {
+		        throw new Exception("A well-formed TempEval2-like file is required as input.");
+		    }
+
+		    FileConverter.pipes2tml(pipesfile, null, null,null);
+
+		    // Create a working directory
+		    File newdir = new File(pipesfile.getFile().getParent() + "/tml-files/");
+		    if (!newdir.exists() || !newdir.isDirectory()) {
+		        newdir.mkdir();
+		    }
+
+		    File olddir = new File(pipesfile.getFile().getParent());
+		    File[] tmlfiles = olddir.listFiles(new FilenameFilter() {
+		        public boolean accept(File dir, String name) {
+		            return name.endsWith(".tml");
+
+		        }
+		    });
+
+		    for (int i=0;i<tmlfiles.length;i++){
+		        if(!tmlfiles[i].renameTo(new File(newdir, tmlfiles[i].getName()))){
+		            throw new Exception("Error moving the TML files.");
+		        }
+		    }
+
+		    // Copy the file
+//                        String output = dir + "/" + nlpfile.getFile().getName();
+//                        FileUtils.copyFileUtil(nlpfile.getFile(), new File(output));
+		    // it would be needed to pass extents and attribs files...
+	}
+    
+    public static void ConvertDataSetToTML(String[] input_files ,String lang) throws Exception, IOException {
+		if (input_files.length != 1) {
+		    throw new Exception("One and only one base-segmentation.tab file is expected.");
+		}
+		File f = new File(input_files[0]);
+		if (!f.exists() || !f.isFile() || f.length()<1) {
+		    throw new Exception("The input must be a non-empty file.");
+		}
+		    // Obtain a piped equivalent
+		    TabFile tabfile = new TabFile(f.getAbsolutePath());
+		    tabfile.setLanguage(lang);
+		    if (!tabfile.isWellFormatted()) {
+		        throw new Exception("A well-formed TempEval2-like base-segmentation.tab file is required as input.");
+		    }
+		    String base = (tabfile).getPipesFile();
+		    base = FileUtils.renameTo(base, "\\.tab\\.pipes", "\\.TempEval-bs");
+
+
+
+		    HashMap<String, Timex> DCTs = FileConverter.getTimexDCTsFromTab(f.getCanonicalPath().substring(0, f.getCanonicalPath().lastIndexOf("/")) + "/dct.tab");
+
+
+		    // Merge all features and attribs (check everything is OK)
+
+		    //timexes
+		    PipesFile pipesfile = new PipesFile(base);
+		    pipesfile.isWellFormedOptimist();
+		    String timex = TempEvalFiles.merge_extents_and_attribs(pipesfile, "timex");
+
+		    //events
+		    pipesfile = new PipesFile(base);
+		    pipesfile.isWellFormedOptimist();
+		    String event = TempEvalFiles.merge_extents_and_attribs(pipesfile, "event");
+
+		    String all_merged = PipesFile.merge_pipes(timex, event);
+
+
+		    // add links to a hash per file
+		    HashMap<String, HashMap<String, Event>> makeinstances = new HashMap<String, HashMap<String, Event>>();
+		    HashMap<String, HashMap<String,Link>> links = new HashMap<String, HashMap<String,Link>>(); // et, e-dct (main and reporting), main (prev sent or last main), sub (intra sent)
+
+		    // Expcting no inconsistencies...
+		    ElementFiller.get_mk_and_links_from_tab_event_timex(tabfile.getFile().getParent()+"/tlinks-timex-event.tab", makeinstances, links);
+		    ElementFiller.get_mk_and_links_from_tab_event_timex(tabfile.getFile().getParent()+"/tlinks-dct-event.tab", makeinstances, links);
+		    // Wait for the data...
+		    //ElementFiller.get_mk_and_links_from_tab_event_event(tabfile.getFile().getParent()+"/tlinks-main-events.tab", makeinstances, links);
+		    //ElementFiller.get_mk_and_links_from_tab_event_event(tabfile.getFile().getParent()+"/tlinks-subordinated-events.tab", makeinstances, links);
+
+
+
+		    pipesfile = null;
+		    pipesfile = new PipesFile(all_merged);
+		    pipesfile.setLanguage(lang);
+		    pipesfile.isWellFormedOptimist();
+		    FileConverter.pipes2tml(pipesfile, DCTs, makeinstances,links);
+
+		    // Create a working directory
+		    File newdir = new File(tabfile.getFile().getParent() + "/tml-files/");
+		    if (!newdir.exists() || !newdir.isDirectory()) {
+		        newdir.mkdir();
+		    }
+
+		    File olddir = new File(tabfile.getFile().getParent());
+		    File[] tmlfiles = olddir.listFiles(new FilenameFilter() {
+		        public boolean accept(File dir, String name) {
+		            return name.endsWith(".tml");
+
+		        }
+		    });
+
+		    for (int i=0;i<tmlfiles.length;i++){
+		        if(!tmlfiles[i].renameTo(new File(newdir, tmlfiles[i].getName()))){
+		            throw new Exception("Error moving the TML files.");
+		        }
+		    }
+
+		    // Copy the file
+//                        String output = dir + "/" + nlpfile.getFile().getName();
+//                        FileUtils.copyFileUtil(nlpfile.getFile(), new File(output));
+		    // it would be needed to pass extents and attribs files...
+	}
+
+    public static void ConvertPlainToTe3(String[] input_files) throws Exception, IOException 
+	{
+		for (int i = 0; i < input_files.length; i++) 
+		{
+		    PlainFile nlpfile = new PlainFile(input_files[i]);
+		    if (!nlpfile.getClass().getSimpleName().equals("PlainFile")) 
+		    {
+		        throw new Exception("TIPSem requires PlainFile files as input. Found: " + nlpfile.getClass().getSimpleName());
+		    }
+		    TML_file_utils.Plain2TE3(nlpfile.getFile().getCanonicalPath());
+		}
+	}
+
+    public static void ConvertToTml(String[] input_files, String convert_to) throws Exception, IOException 
+	{
+		
+		if (convert_to == null || !convert_to.matches("((?i)te3input|isotml|from_isotml)")) 
+		{
+		    throw new Exception("convert_to parameter is required (te3input,isotml, or from_isotml).");
+		}
+
+		for (int i = 0; i < input_files.length; i++) 
+		{
+		    XMLFile nlpfile = new XMLFile(input_files[i],null);
+		    if (!nlpfile.getClass().getSimpleName().equals("XMLFile")) 
+		    {
+		        throw new Exception("TIPSem requires XMLFile files as input. Found: " + nlpfile.getClass().getSimpleName());
+		    }
+		    if (convert_to.equalsIgnoreCase("from_isotml")) 
+		    {
+		        if (!nlpfile.getExtension().equalsIgnoreCase("isotml")) 
+		        {
+		            nlpfile.overrideExtension("isotml");
+		        }
+		        if (!nlpfile.isWellFormatted()) 
+		        {
+		            throw new Exception("File: " + nlpfile.getFile() + " is not a valid TimeML (.tml) XML file.");
+		        }
+		        TML_file_utils.ISOTML2TML(nlpfile.getFile().getCanonicalPath());
+		    } else 
+		    {
+		        if (!nlpfile.getExtension().equalsIgnoreCase("tml")) 
+		        {
+		            nlpfile.overrideExtension("tml");
+		        }
+		        if (!nlpfile.isWellFormatted()) 
+		        {
+		            throw new Exception("File: " + nlpfile.getFile() + " is not a valid TimeML (.tml) XML file.");
+		        }
+		        if (convert_to.equalsIgnoreCase("te3input")) 
+		        {
+		            TML_file_utils.TML2TE3(nlpfile.getFile().getCanonicalPath());
+		        } else 
+		        {
+		            TML_file_utils.TML2ISOTML(nlpfile.getFile().getCanonicalPath());
+		        }
+		    }
+
+		}
+	}
+
+	public static void ConvertUtfToIso8859(String[] input_files) throws FileNotFoundException, IOException, Exception 
+	{
+		for (int i = 0; i < input_files.length; i++) 
+		{
+		    String line;
+		    BufferedReader TE3inputReader = new BufferedReader(new FileReader(new File(input_files[i])));
+		    try 
+		    {
+		    	Logger.Write("Processing file: " + input_files[i]);
+		        while ((line = TE3inputReader.readLine()) != null)
+		        {
+		            if (!StringUtils.existsInEncoding(line, "ISO-8859-1"))
+		            {
+		                throw new Exception("Not ISO safe UTF line: " + line);
+		            }
+		        }
+		    } finally 
+		    {
+		        if (TE3inputReader != null) {
+		            TE3inputReader.close();
+		        }
+		    }
+		}
+	}
 }

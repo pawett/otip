@@ -1,0 +1,18 @@
+package domain;
+
+public enum TimeLinkRelationType {
+	BEFORE,
+	AFTER,
+	INCLUDES,
+	IS_INCLUDED,
+	DURING,
+	DURING_INV,
+	SIMULTANEOUS,
+	IAFTER,
+	IBEFORE,
+	IDENTITY,
+	BEGINS,
+	ENDS,
+	BEGUN_BY,
+	ENDED_BY
+}

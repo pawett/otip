@@ -1,0 +1,11 @@
+package domain;
+
+public enum TimeFunctionInDocument {
+	CREATIONTIME, 
+	MODIFICATIONTIME,
+	PUBLICATIONTIME, 
+	RELEASETIME,
+	RECEPTIONTIME, 
+	EXPIRATIONTIME,
+	NONE
+}

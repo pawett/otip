@@ -1,21 +1,29 @@
 package com.cognitionis.tipsem;
 
-import com.cognitionis.external_tools.*;
-import com.cognitionis.feature_builder.*;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import com.cognitionis.external_tools.CRF;
+import com.cognitionis.external_tools.SVM;
+import com.cognitionis.feature_builder.BaseTokenFeatures;
+import com.cognitionis.feature_builder.CategorizationTE2;
+import com.cognitionis.feature_builder.Classification;
+import com.cognitionis.feature_builder.TimexNormalization;
+import com.cognitionis.nlp_files.PipesFile;
+import com.cognitionis.nlp_files.TempEvalFiles;
+import com.cognitionis.nlp_files.annotation_scorers.Score;
+import com.cognitionis.nlp_files.annotation_scorers.Scorer;
+import com.cognitionis.tipsem.helpers.Logger;
 import com.cognitionis.utils_basickit.FileUtils;
 import com.cognitionis.utils_basickit.StringUtils;
-import com.cognitionis.nlp_files.TempEvalFiles;
-import com.cognitionis.nlp_files.PipesFile;
-import com.cognitionis.nlp_files.annotation_scorers.*;
 import com.cognitionis.utils_basickit.statistics.T_test;
-import java.io.*;
-import java.util.*;
 
 /**
  * @author Hector Llorens
  * @since 2011
  */
-public class old_train {
+/*public class old_train {
 
             public static String localDatasetPath = FileUtils.getApplicationPath() +"program-data/TIMEE-training/";
 
@@ -39,10 +47,13 @@ public class old_train {
         String output = "";
         PipesFile nlpfile;
         Scorer scorer = new Scorer();
-        try {
+        try 
+        {
             File dir = new File(localDatasetPath + "experiments/" + approach + "/");
-            if (!dir.exists()) {
-                if (!dir.mkdirs()) {  // mkdir only creates one, mkdirs creates many parent dirs if needed
+            if (!dir.exists()) 
+            {
+                if (!dir.mkdirs()) 
+                {  // mkdir only creates one, mkdirs creates many parent dirs if needed
                     throw new Exception("Directory not created...");
                 }
             }
@@ -57,14 +68,17 @@ public class old_train {
 
 
             String model = dir + "/" + approach + "_rec_" + elem + "_" + lang + "." + method + "model";
-            System.out.println("model: " + model);
-            if (!(new File(model)).exists() || retrain != null) {
+            Logger.Write("model: " + model);
+            if (!(new File(model)).exists() || retrain != null) 
+            {
                 output = TempEvalFiles.merge_extents(localDatasetPath + lang + "/train/base-segmentation.TempEval2-features", localDatasetPath + lang + "/train/" + elem + "-extents.tab", elem);
 
-                if (method.equals("CRF")) {
+                if (method.equals("CRF")) 
+                {
                     output = CRF.train(output, approach + "_rec_" + elem + ".template");
                 }
-                if (method.equals("SVM")) {
+                if (method.equals("SVM")) 
+                {
                     output = SVM.train(output, approach + "_rec_" + elem + ".template");
                 }
                 (new File(output)).renameTo(new File(model));
@@ -73,11 +87,13 @@ public class old_train {
             //test Model
             // Hacer opcional por parametro...
             //getFeatures(lang,"test/entities");
-            System.out.println("Test..." + model);
-            if (method.equals("CRF")) {
+            Logger.Write("Test..." + model);
+            if (method.equals("CRF")) 
+            {
                 output = CRF.test(localDatasetPath + lang + "/test/entities/base-segmentation.TempEval2-features", model);
             }
-            if (method.equals("SVM")) {
+            if (method.equals("SVM")) 
+            {
                 output = SVM.test(localDatasetPath + lang + "/test/entities/base-segmentation.TempEval2-features", model);
             }
             nlpfile = new PipesFile(output);
@@ -95,7 +111,7 @@ public class old_train {
 
 
             // TempEvalFiles-2 results
-            System.out.println("Results: " + approach);
+            Logger.Write("Results: " + approach);
             //TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
 
             // AnnotScore results
@@ -106,25 +122,31 @@ public class old_train {
             score.print("");
 
 
-            if (baseline != null) {
+            if (baseline != null) 
+            {
                 File baselinef = null;
-                if (method.equals("CRF")) {
+                if (method.equals("CRF")) 
+                {
                     baselinef = new File(CRF.program_path + baseline + "_rec_" + elem + ".template");
                 }
-                if (method.equals("SVM")) {
+                if (method.equals("SVM")) 
+                {
                     baselinef = new File(SVM.program_path + baseline + "_rec_" + elem + ".template");
                 }
 
 
-                if (baselinef.exists()) {
+                if (baselinef.exists()) 
+                {
                     model = dir + "/" + baseline + "_rec_" + elem + "_" + lang + "." + method + "model";
                     if (!(new File(model)).exists() || retrain != null) {
 
                         output = TempEvalFiles.merge_extents(localDatasetPath + lang + "/train/base-segmentation.TempEval2-features", localDatasetPath + lang + "/train/" + elem + "-extents.tab", elem);
-                        if (method.equals("CRF")) {
+                        if (method.equals("CRF")) 
+                        {
                             output = CRF.train(output, baseline + "_rec_" + elem + ".template");
                         }
-                        if (method.equals("SVM")) {
+                        if (method.equals("SVM")) 
+                        {
                             output = SVM.train(output, baseline + "_rec_" + elem + ".template");
                         }
 
@@ -134,10 +156,12 @@ public class old_train {
 
 
 
-                    if (method.equals("CRF")) {
+                    if (method.equals("CRF")) 
+                    {
                         output = CRF.test(localDatasetPath + lang + "/test/entities/base-segmentation.TempEval2-features", model);
                     }
-                    if (method.equals("SVM")) {
+                    if (method.equals("SVM")) 
+                    {
                         output = SVM.test(localDatasetPath + lang + "/test/entities/base-segmentation.TempEval2-features", model);
                     }
 
@@ -157,7 +181,7 @@ public class old_train {
                     output = TempEvalFiles.merge_extents(localDatasetPath + lang + "/test/entities/base-segmentation.TempEval2-features", localDatasetPath + lang + "/test/entities/" + elem + "-extents.tab", elem);
 
 
-                    System.out.println("Results: " + baseline);
+                    Logger.Write("Results: " + baseline);
                     Score score2 = scorer.score(nlpfile, annot + "-key", nlpfile.getColumn("element\\(IOB2\\)"), -1);
                     score2.print("");
 
@@ -171,16 +195,15 @@ public class old_train {
             }
 
 
-        } catch (Exception e) {
-            System.err.println("Errors found (Experimenter):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
+        } catch (Exception e) 
+        {
+        	 Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e);
+             System.exit(1);
         }
     }
 
-        public static void Categorization(String elem, String approach, String lang, String method) {
+    public static void Categorization(String elem, String approach, String lang, String method) 
+    {
         Categorization(elem, approach, lang, method, null, null);
     }
 
@@ -205,10 +228,12 @@ public class old_train {
             String model = dir + "/" + approach + "_categ_" + elem + "_" + lang + "." + method + "model";
             if (!(new File(model)).exists() || retrain != null) {
                 output = CategorizationTE2.get_categorization(localDatasetPath + lang + "/train/" + category_files.get(elem), elem);
-                if (method.equals("CRF")) {
+                if (method.equals("CRF")) 
+                {
                     output = CRF.train(output, approach + "_categ_" + elem + ".template");
                 }
-                if (method.equals("SVM")) {
+                if (method.equals("SVM")) 
+                {
                     output = SVM.train(output, approach + "_categ_" + elem + ".template");
                 }
                 (new File(output)).renameTo(new File(model));
@@ -217,24 +242,23 @@ public class old_train {
 
             output = CategorizationTE2.get_categorization(localDatasetPath + lang + "/test/relations/" + category_files.get(elem), elem);
 
-            if (method.equals("CRF")) {
+            if (method.equals("CRF")) 
+            {
                 output = CRF.test(output, model);
             }
-            if (method.equals("SVM")) {
+            if (method.equals("SVM")) 
+            {
                 output = SVM.test(output, model);
             }
 
             String annot = dir + "/" + (new File(output)).getName();
             (new File(output)).renameTo(new File(annot));
-            /*PipesFile nlpannot = new PipesFile();
-            nlpannot.loadFile(new File(annot));
-            ((PipesFile) nlpannot).isWellFormedOptimist();
-             */
+
             key = CategorizationTE2.get_categorization(localDatasetPath + lang + "/test/relations/" + category_files.get(elem), elem);
 
 
             // TempEvalFiles-2 results
-            System.out.println("Results: " + approach);
+            Logger.Write("Results: " + approach);
             //TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
 
             // AnnotScore results
@@ -245,25 +269,31 @@ public class old_train {
             score.print("");
 
 
-            if (baseline != null) {
+            if (baseline != null) 
+            {
                 File baselinef = null;
-                if (method.equals("CRF")) {
+                if (method.equals("CRF")) 
+                {
                     baselinef = new File(CRF.program_path + baseline + "_categ_" + elem + ".template");
                 }
-                if (method.equals("SVM")) {
+                if (method.equals("SVM"))
+                {
                     baselinef = new File(SVM.program_path + baseline + "_categ_" + elem + ".template");
                 }
 
 
-                if (baselinef.exists()) {
+                if (baselinef.exists()) 
+                {
                     model = dir + "/" + baseline + "_categ_" + elem + "_" + lang + "." + method + "model";
                     if (!(new File(model)).exists() || retrain != null) {
                         output = CategorizationTE2.get_categorization(localDatasetPath + lang + "/train/" + category_files.get(elem), elem);
 
-                        if (method.equals("CRF")) {
+                        if (method.equals("CRF")) 
+                        {
                             output = CRF.train(output, baseline + "_categ_" + elem + ".template");
                         }
-                        if (method.equals("SVM")) {
+                        if (method.equals("SVM")) 
+                        {
                             output = SVM.train(output, baseline + "_categ_" + elem + ".template");
                         }
 
@@ -274,31 +304,25 @@ public class old_train {
                     output = CategorizationTE2.get_categorization(localDatasetPath + lang + "/test/relations/" + category_files.get(elem), elem);
 
 
-                    if (method.equals("CRF")) {
+                    if (method.equals("CRF")) 
+                    {
                         output = CRF.test(output, model);
                     }
-                    if (method.equals("SVM")) {
+                    if (method.equals("SVM")) 
+                    {
                         output = SVM.test(output, model);
                     }
                     String annot_nosr = dir + "/" + (new File(output)).getName();
 
                     (new File(output)).renameTo(new File(annot_nosr));
-                    /*PipesFile nlpannot_nosr = new PipesFile();
-                    nlpannot_nosr.loadFile(new File(annot_nosr));
-                    ((PipesFile) nlpannot_nosr).isWellFormedOptimist();
-                     */
-
-
+                  
 
                     // Build key
                     key = CategorizationTE2.get_categorization(localDatasetPath + lang + "/test/relations/" + category_files.get(elem), elem);
 
-
-                    System.out.println("Results: " + baseline);
+                    Logger.Write("Results: " + baseline);
                     Score score2 = scorer.score_class(annot_nosr, key, -1);
                     score2.print("");
-
-
 
                     // EN QUE MEJORAN LOS ROLES?
                     scorer.compare_scores(score, score2);
@@ -307,11 +331,8 @@ public class old_train {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Errors found (Experimenter):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
+        	 Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e);
+             System.exit(1);
         }
 
     }
@@ -330,17 +351,16 @@ public class old_train {
                 }
             }
 
-
-
-
-            for (int n = 1; n <= 10; n++) {
+            for (int n = 1; n <= 10; n++) 
+            {
                 File dir2 = new File(dir + "/" + "fold" + n + "/");
-                if (!dir2.exists()) {
+                if (!dir2.exists()) 
+                {
                     if (!dir2.mkdirs()) {  // mkdir only creates one, mkdirs creates many parent dirs if needed
                         throw new Exception("Directory not created...");
                     }
                 }
-                System.out.println("\n\nFOLD " + n + "--------------\n\n");
+                Logger.Write("\n\nFOLD " + n + "--------------\n\n");
 
                 // Check for features files (train/test)
                 if (!(new File(localDatasetPath + lang + "/train" + n + "/base-segmentation." + feature_vector)).exists()) {
@@ -352,14 +372,16 @@ public class old_train {
 
 
                 String model = dir + "/" + "fold" + n + "/" + approach + "_rec_" + elem + "_" + lang + "." + method + "model";
-                System.out.println("model: " + model);
+                Logger.Write("model: " + model);
                 if (!(new File(model)).exists() || retrain != null) {
                     output = TempEvalFiles.merge_extents(localDatasetPath + lang + "/train" + n + "/base-segmentation." + feature_vector, localDatasetPath + lang + "/train" + n + "/" + elem + "-extents.tab", elem);
 
-                    if (method.equals("CRF")) {
+                    if (method.equals("CRF")) 
+                    {
                         output = CRF.train(output, approach + "_rec_" + elem + ".template");
                     }
-                    if (method.equals("SVM")) {
+                    if (method.equals("SVM")) 
+                    {
                         output = SVM.train(output, approach + "_rec_" + elem + ".template");
                     }
                     (new File(output)).renameTo(new File(model));
@@ -367,11 +389,13 @@ public class old_train {
                 }
                 //test Model
                 // Hacer opcional por parametro...
-                System.out.println("Test..." + model);
-                if (method.equals("CRF")) {
+                Logger.Write("Test..." + model);
+                if (method.equals("CRF")) 
+                {
                     output = CRF.test(localDatasetPath + lang + "/test" + n + "/base-segmentation." + feature_vector, model);
                 }
-                if (method.equals("SVM")) {
+                if (method.equals("SVM")) 
+                {
                     output = SVM.test(localDatasetPath + lang + "/test" + n + "/base-segmentation." + feature_vector, model);
                 }
                 nlpfile = new PipesFile(output);
@@ -389,49 +413,50 @@ public class old_train {
 
 
                 // TempEvalFiles-2 results
-                System.out.println("Results: " + approach);
+                Logger.Write("Results: " + approach);
                 //TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/"+ elem + "-attributes.tab", lang, elem);
 
                 // AnnotScore results
                 Score score = scorer.score(nlpfile, annot + "-key", nlpfile.getColumn("element\\(IOB2\\)"), -1);
-                //score.print("attribs");
-                //score.print("detail");
-                //score.print(printopts);
-                score.print("");
                 approach_scores.add((Score) score.clone());
 
                 if (baseline != null) {
                     File baselinef = null;
-                    if (method.equals("CRF")) {
+                    if (method.equals("CRF")) 
+                    {
                         baselinef = new File(CRF.program_path + "templates/" + baseline + "_rec_" + elem + ".template");
                     }
-                    if (method.equals("SVM")) {
+                    if (method.equals("SVM")) 
+                    {
                         baselinef = new File(SVM.program_path + "templates/" + baseline + "_rec_" + elem + ".template");
                     }
 
 
-                    if (baselinef.exists()) {
+                    if (baselinef.exists()) 
+                    {
                         model = dir + "/" + "fold" + n + "/" + baseline + "_rec_" + elem + "_" + lang + "." + method + "model";
-                        if (!(new File(model)).exists() || retrain != null) {
+                        if (!(new File(model)).exists() || retrain != null)
+                        {
 
                             output = TempEvalFiles.merge_extents(localDatasetPath + lang + "/train" + n + "/base-segmentation." + feature_vector, localDatasetPath + lang + "/train" + n + "/" + elem + "-extents.tab", elem);
-                            if (method.equals("CRF")) {
+                            if (method.equals("CRF")) 
+                            {
                                 output = CRF.train(output, baseline + "_rec_" + elem + ".template");
                             }
-                            if (method.equals("SVM")) {
+                            if (method.equals("SVM")) 
+                            {
                                 output = SVM.train(output, baseline + "_rec_" + elem + ".template");
                             }
 
                             (new File(output)).renameTo(new File(model));
                         }
 
-
-
-
-                        if (method.equals("CRF")) {
+                        if (method.equals("CRF")) 
+                        {
                             output = CRF.test(localDatasetPath + lang + "/test" + n + "/base-segmentation." + feature_vector, model);
                         }
-                        if (method.equals("SVM")) {
+                        if (method.equals("SVM")) 
+                        {
                             output = SVM.test(localDatasetPath + lang + "/test" + n + "/base-segmentation." + feature_vector, model);
                         }
 
@@ -451,7 +476,7 @@ public class old_train {
                         output = TempEvalFiles.merge_extents(localDatasetPath + lang + "/test" + n + "/base-segmentation." + feature_vector, localDatasetPath + lang + "/test" + n + "/" + elem + "-extents.tab", elem);
 
 
-                        System.out.println("Results: " + baseline);
+                        Logger.Write("Results: " + baseline);
                         Score score2 = scorer.score(nlpfile, annot + "-key", nlpfile.getColumn("element\\(IOB2\\)"), -1);
                         score2.print("");
 
@@ -460,20 +485,14 @@ public class old_train {
 
                         // EN QUE MEJORAN LOS ROLES?
                         //scorer.compare_scores(score, score2);
-
-
                     }
                 }
             }
 
-
-
-
-
-
             // Aquí puedo tener 10 pares de scores y calcular si la differencia es significativa
             String element = elem;
-            if (element.equals("timex")) {
+            if (element.equals("timex")) 
+            {
                 element += "3";
             }
             double mean_P = 0.0;
@@ -489,7 +508,7 @@ public class old_train {
                 mean_P = mean_P / 10.0;
                 mean_R = mean_R / 10.0;
                 mean_F1 = mean_F1 / 10.0;
-                System.out.println("\n\n\n----------------10 Fold (approach: " + approach + ")\n--> precis\trecall\tf1\n--> " + StringUtils.twoDecPosS(mean_P) + " \t& " + StringUtils.twoDecPosS(mean_R) + " \t& " + StringUtils.twoDecPosS(mean_F1));
+                Logger.Write("\n\n\n----------------10 Fold (approach: " + approach + ")\n--> precis\trecall\tf1\n--> " + StringUtils.twoDecPosS(mean_P) + " \t& " + StringUtils.twoDecPosS(mean_R) + " \t& " + StringUtils.twoDecPosS(mean_F1));
             }
 
             if (baseline_scores.size() == 10 && approach_scores.size() == 10) {
@@ -559,80 +578,72 @@ public class old_train {
                 mean_Rerr = mean_Rerr / 10.0;
                 mean_F1err = mean_F1err / 10.0;
 
-                System.out.println("\n----------------10 Fold (baseline: " + baseline + ")\n--> precis \trecall\tf1\n--> " + StringUtils.twoDecPosS(mean_Pb) + " \t& " + StringUtils.twoDecPosS(mean_Rb) + " \t& " + StringUtils.twoDecPosS(mean_F1b));
+                Logger.Write("\n----------------10 Fold (baseline: " + baseline + ")\n--> precis \trecall\tf1\n--> " + StringUtils.twoDecPosS(mean_Pb) + " \t& " + StringUtils.twoDecPosS(mean_Rb) + " \t& " + StringUtils.twoDecPosS(mean_F1b));
+                Logger.Write("\n----------------10 Fold DIFFERENCES\n-->       pre\trec\tf1");
+                Logger.Write("--> DIFF: " + StringUtils.twoDecPosS(mean_Pdiff) + "  \t& " + StringUtils.twoDecPosS(mean_Rdiff) + "  \t& " + StringUtils.twoDecPosS(mean_F1diff));
+                Logger.Write("--> IMP: " + StringUtils.twoDecPosS(mean_Pimp) + "  \t& " + StringUtils.twoDecPosS(mean_Rimp) + "  \t& " + StringUtils.twoDecPosS(mean_F1imp));
+                Logger.Write("--> ERR: " + StringUtils.twoDecPosS(mean_Perr) + "  \t& " + StringUtils.twoDecPosS(mean_Rerr) + "  \t& " + StringUtils.twoDecPosS(mean_F1err));
 
 
-                System.out.println("\n----------------10 Fold DIFFERENCES\n-->       pre\trec\tf1");
-                System.out.println("--> DIFF: " + StringUtils.twoDecPosS(mean_Pdiff) + "  \t& " + StringUtils.twoDecPosS(mean_Rdiff) + "  \t& " + StringUtils.twoDecPosS(mean_F1diff));
-                System.out.println("--> IMP: " + StringUtils.twoDecPosS(mean_Pimp) + "  \t& " + StringUtils.twoDecPosS(mean_Rimp) + "  \t& " + StringUtils.twoDecPosS(mean_F1imp));
-                System.out.println("--> ERR: " + StringUtils.twoDecPosS(mean_Perr) + "  \t& " + StringUtils.twoDecPosS(mean_Rerr) + "  \t& " + StringUtils.twoDecPosS(mean_F1err));
+                Logger.Write("\n\ndiffP significance:\n " + T_test.paired_t_test(diffsP) + "");
+                Logger.Write("diffR significance:\n " + T_test.paired_t_test(diffsR) + "");
+                Logger.Write("diffF1 significance:\n " + T_test.paired_t_test(diffsF1) + "");
 
+                Logger.Write("\n\nimpP significance:\n " + T_test.paired_t_test(impP) + "");
+                Logger.Write("impR significance:\n " + T_test.paired_t_test(impR) + "");
+                Logger.Write("impF1 significance:\n " + T_test.paired_t_test(impF1) + "");
 
-                System.out.println("\n\ndiffP significance:\n " + T_test.paired_t_test(diffsP) + "");
-                System.out.println("diffR significance:\n " + T_test.paired_t_test(diffsR) + "");
-                System.out.println("diffF1 significance:\n " + T_test.paired_t_test(diffsF1) + "");
-
-                System.out.println("\n\nimpP significance:\n " + T_test.paired_t_test(impP) + "");
-                System.out.println("impR significance:\n " + T_test.paired_t_test(impR) + "");
-                System.out.println("impF1 significance:\n " + T_test.paired_t_test(impF1) + "");
-
-                System.out.println("\n\nerrP significance:\n " + T_test.paired_t_test(errP) + "");
-                System.out.println("errR significance:\n " + T_test.paired_t_test(errR) + "");
-                System.out.println("errF1 significance:\n " + T_test.paired_t_test(errF1) + "");
+                Logger.Write("\n\nerrP significance:\n " + T_test.paired_t_test(errP) + "");
+                Logger.Write("errR significance:\n " + T_test.paired_t_test(errR) + "");
+                Logger.Write("errF1 significance:\n " + T_test.paired_t_test(errF1) + "");
 
 
                 boolean latex = true;
 
                 if (latex) {
-                    System.out.println("\n\n\\begin{table} [h]\n\\begin{footnotesize}\n\\begin{center}\n\\begin{tabular} {llllllllllll}\n\\hline\\rule{-2pt}{8pt}\n& \\multicolumn{3}{c}{\\textbf{" + baseline + "}} & \\hspace{0.2cm} & \\multicolumn{3}{c}{\\textbf{" + approach + "}}  & \\hspace{0.2cm} & \\multicolumn{3}{c}{\\textbf{Difference}}\\\\");
-                    System.out.println("\\textbf{Dataset \\hspace{0.2cm}} \t& \\textbf{P} \t& \\textbf{R} \t& \\textbf{F1} \t& \t& \\textbf{P} \t& \\textbf{R} \t& \\textbf{F1} \t& \t& \\textbf{P} \t& \\textbf{R} \t& \\textbf{F1}\\\\\n  \\hline\\rule{-2pt}{8pt}");
+                	Logger.Write("\n\n\\begin{table} [h]\n\\begin{footnotesize}\n\\begin{center}\n\\begin{tabular} {llllllllllll}\n\\hline\\rule{-2pt}{8pt}\n& \\multicolumn{3}{c}{\\textbf{" + baseline + "}} & \\hspace{0.2cm} & \\multicolumn{3}{c}{\\textbf{" + approach + "}}  & \\hspace{0.2cm} & \\multicolumn{3}{c}{\\textbf{Difference}}\\\\");
+                	Logger.Write("\\textbf{Dataset \\hspace{0.2cm}} \t& \\textbf{P} \t& \\textbf{R} \t& \\textbf{F1} \t& \t& \\textbf{P} \t& \\textbf{R} \t& \\textbf{F1} \t& \t& \\textbf{P} \t& \\textbf{R} \t& \\textbf{F1}\\\\\n  \\hline\\rule{-2pt}{8pt}");
                     for (int fold = 0; fold < 10; fold++) {
-                        System.out.println("\\textbf{Fold-" + (fold + 1) + "} \t& " + StringUtils.twoDecPosS(baseline_scores.get(fold).getPrecisionTokenLevel(element)) + " & " + StringUtils.twoDecPosS(baseline_scores.get(fold).getRecallTokenLevel(element)) + " 	\t& \\multicolumn{1}{| >{\\columncolor[rgb]{0.8,0.8,0.8}}l|}{" + StringUtils.twoDecPosS(baseline_scores.get(fold).getF1TokenLevel(element)) + "} \t& \t& " + StringUtils.twoDecPosS(approach_scores.get(fold).getPrecisionTokenLevel(element)) + " \t& " + StringUtils.twoDecPosS(approach_scores.get(fold).getRecallTokenLevel(element)) + " & \\multicolumn{1}{| >{\\columncolor[rgb]{0.8,0.8,0.8}}l|}{" + StringUtils.twoDecPosS(approach_scores.get(fold).getF1TokenLevel(element)) + "} \t& \t& " + StringUtils.twoDecPosS(diffsP[fold]) + " \t& " + StringUtils.twoDecPosS(diffsR[fold]) + " & \\multicolumn{1}{| >{\\columncolor[rgb]{0.8,0.8,0.8}}l|}{" + StringUtils.twoDecPosS(diffsF1[fold]) + "} \\\\");
+                        Logger.Write("\\textbf{Fold-" + (fold + 1) + "} \t& " + StringUtils.twoDecPosS(baseline_scores.get(fold).getPrecisionTokenLevel(element)) + " & " + StringUtils.twoDecPosS(baseline_scores.get(fold).getRecallTokenLevel(element)) + " 	\t& \\multicolumn{1}{| >{\\columncolor[rgb]{0.8,0.8,0.8}}l|}{" + StringUtils.twoDecPosS(baseline_scores.get(fold).getF1TokenLevel(element)) + "} \t& \t& " + StringUtils.twoDecPosS(approach_scores.get(fold).getPrecisionTokenLevel(element)) + " \t& " + StringUtils.twoDecPosS(approach_scores.get(fold).getRecallTokenLevel(element)) + " & \\multicolumn{1}{| >{\\columncolor[rgb]{0.8,0.8,0.8}}l|}{" + StringUtils.twoDecPosS(approach_scores.get(fold).getF1TokenLevel(element)) + "} \t& \t& " + StringUtils.twoDecPosS(diffsP[fold]) + " \t& " + StringUtils.twoDecPosS(diffsR[fold]) + " & \\multicolumn{1}{| >{\\columncolor[rgb]{0.8,0.8,0.8}}l|}{" + StringUtils.twoDecPosS(diffsF1[fold]) + "} \\\\");
                     }
-                    System.out.println("\\hline\\rule{-2pt}{8pt}");
-                    System.out.println("\\textbf{Mean} \t& " + StringUtils.twoDecPosS(mean_Pb) + " \t& " + StringUtils.twoDecPosS(mean_Rb) + " \t& \\multicolumn{1}{| >{\\columncolor[rgb]{0.8,0.8,0.8}}l|}{" + StringUtils.twoDecPosS(mean_F1b) + "} \t& \t& " + StringUtils.twoDecPosS(mean_P) + " \t& " + StringUtils.twoDecPosS(mean_R) + " \t& \\multicolumn{1}{| >{\\columncolor[rgb]{0.8,0.8,0.8}}l|}{" + StringUtils.twoDecPosS(mean_F1) + "} \t& \t& " + StringUtils.twoDecPosS(mean_Pdiff) + " \t& " + StringUtils.twoDecPosS(mean_Rdiff) + " \t& \\multicolumn{1}{| >{\\columncolor[rgb]{0.8,0.8,0.8}}l|}{" + StringUtils.twoDecPosS(mean_F1diff) + "} \\\\");
-                    System.out.println("\\hline\n\\end{tabular}\n\\ \\\\\\vspace{0.5cm}\\ \\\\");
+                    Logger.Write("\\hline\\rule{-2pt}{8pt}");
+                    Logger.Write("\\textbf{Mean} \t& " + StringUtils.twoDecPosS(mean_Pb) + " \t& " + StringUtils.twoDecPosS(mean_Rb) + " \t& \\multicolumn{1}{| >{\\columncolor[rgb]{0.8,0.8,0.8}}l|}{" + StringUtils.twoDecPosS(mean_F1b) + "} \t& \t& " + StringUtils.twoDecPosS(mean_P) + " \t& " + StringUtils.twoDecPosS(mean_R) + " \t& \\multicolumn{1}{| >{\\columncolor[rgb]{0.8,0.8,0.8}}l|}{" + StringUtils.twoDecPosS(mean_F1) + "} \t& \t& " + StringUtils.twoDecPosS(mean_Pdiff) + " \t& " + StringUtils.twoDecPosS(mean_Rdiff) + " \t& \\multicolumn{1}{| >{\\columncolor[rgb]{0.8,0.8,0.8}}l|}{" + StringUtils.twoDecPosS(mean_F1diff) + "} \\\\");
+                    Logger.Write("\\hline\n\\end{tabular}\n\\ \\\\\\vspace{0.5cm}\\ \\\\");
 
-                    System.out.println("\\begin{tabular} {lrlll}\n\\hline\\rule{-2pt}{8pt} \\textbf{Comparison} 	 & & & & \\\\\n\\textbf{TIPSem/TIPSem-B} & 	& \\textbf{Mean}  	& \\textbf{SD}	& \\textbf{t (p one-tail)} \\\\");
+                    Logger.Write("\\begin{tabular} {lrlll}\n\\hline\\rule{-2pt}{8pt} \\textbf{Comparison} 	 & & & & \\\\\n\\textbf{TIPSem/TIPSem-B} & 	& \\textbf{Mean}  	& \\textbf{SD}	& \\textbf{t (p one-tail)} \\\\");
 
-                    System.out.println("\\hline\\rule{-2pt}{8pt}\\textbf{Difference}");
+                    Logger.Write("\\hline\\rule{-2pt}{8pt}\\textbf{Difference}");
                     String ttest = T_test.paired_t_test(diffsP);
-                    System.out.println("\t& \\textbf{P} \t& " + T_test.latex_t_test(ttest));
+                    Logger.Write("\t& \\textbf{P} \t& " + T_test.latex_t_test(ttest));
                     ttest = T_test.paired_t_test(diffsR);
-                    System.out.println("\t& \\textbf{R} \t& " + T_test.latex_t_test(ttest));
+                    Logger.Write("\t& \\textbf{R} \t& " + T_test.latex_t_test(ttest));
                     ttest = T_test.paired_t_test(diffsF1);
-                    System.out.println("\t& \\textbf{F1} \t& " + T_test.latex_t_test(ttest));
+                    Logger.Write("\t& \\textbf{F1} \t& " + T_test.latex_t_test(ttest));
 
-                    System.out.println("\\hline\\rule{-2pt}{8pt}\\textbf{Improvement \\%}");
+                    Logger.Write("\\hline\\rule{-2pt}{8pt}\\textbf{Improvement \\%}");
                     ttest = T_test.paired_t_test(impP);
-                    System.out.println("\t& \\textbf{P} \t& " + T_test.latex_t_test(ttest));
+                    Logger.Write("\t& \\textbf{P} \t& " + T_test.latex_t_test(ttest));
                     ttest = T_test.paired_t_test(impR);
-                    System.out.println("\t& \\textbf{R} \t& " + T_test.latex_t_test(ttest));
+                    Logger.Write("\t& \\textbf{R} \t& " + T_test.latex_t_test(ttest));
                     ttest = T_test.paired_t_test(impF1);
-                    System.out.println("\t& \\textbf{F1} \t& " + T_test.latex_t_test(ttest));
+                    Logger.Write("\t& \\textbf{F1} \t& " + T_test.latex_t_test(ttest));
 
-                    System.out.println("\\hline\\rule{-2pt}{8pt}\\textbf{Relative error}");
+                    Logger.Write("\\hline\\rule{-2pt}{8pt}\\textbf{Relative error}");
                     ttest = T_test.paired_t_test(errP);
-                    System.out.println("\t& \\textbf{P} \t& " + T_test.latex_t_test(ttest));
+                    Logger.Write("\t& \\textbf{P} \t& " + T_test.latex_t_test(ttest));
                     ttest = T_test.paired_t_test(errR);
-                    System.out.println("\\ \\textbf{reduction \\%} \t& \\textbf{R} \t& " + T_test.latex_t_test(ttest));
+                    Logger.Write("\\ \\textbf{reduction \\%} \t& \\textbf{R} \t& " + T_test.latex_t_test(ttest));
                     ttest = T_test.paired_t_test(errF1);
-                    System.out.println("\t& \\textbf{F1} \t& " + T_test.latex_t_test(ttest));
-                    System.out.println("\\hline\n\\end{tabular}\n\\end{center}\n\\caption{" + elem + " recognition 10-fold (English)}\\label{tab:10-fold-" + elem + "-rec}");
-                    System.out.println("\\end{footnotesize}\n\\end{table}");
+                    Logger.Write("\t& \\textbf{F1} \t& " + T_test.latex_t_test(ttest));
+                    Logger.Write("\\hline\n\\end{tabular}\n\\end{center}\n\\caption{" + elem + " recognition 10-fold (English)}\\label{tab:10-fold-" + elem + "-rec}");
+                    Logger.Write("\\end{footnotesize}\n\\end{table}");
                 }
             }
 
-
-
-
-
-        } catch (Exception e) {
-            System.err.println("Errors found (Experimenter):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
+        } catch (Exception e) 
+        {
+        	Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e);
+            System.exit(1);
         }
     }
 
@@ -643,9 +654,11 @@ public class old_train {
     public static void Classification(String elem, String approach, String lang, String method, String baseline, String retrain) {
         String output = "", key;
         Scorer scorer = new Scorer();
-        try {
+        try 
+        {
             File dir = new File(localDatasetPath + "experiments/" + approach + "/");
-            if (!dir.exists()) {
+            if (!dir.exists()) 
+            {
                 dir.mkdirs();
             }
 
@@ -659,17 +672,20 @@ public class old_train {
             }
 
             String model = dir + "/" + approach + "_class_" + elem + "_" + lang + "." + method + "model";
-            if (!(new File(model)).exists() || retrain != null) {
+            if (!(new File(model)).exists() || retrain != null) 
+            {
 
                 output = TempEvalFiles.merge_extents(localDatasetPath + lang + "/train/base-segmentation.TempEval2-features", localDatasetPath + lang + "/train/" + elem + "-extents.tab", elem);
                 output = TempEvalFiles.merge_attribs(localDatasetPath + lang + "/train/base-segmentation.TempEval2-features-annotationKey-" + elem, localDatasetPath + lang + "/train/" + elem + "-attributes.tab", elem);
                 output = Classification.get_classik(output, lang);
 
 
-                if (method.equals("CRF")) {
+                if (method.equals("CRF")) 
+                {
                     output = CRF.train(output, approach + "_class_" + elem + ".template");
                 }
-                if (method.equals("SVM")) {
+                if (method.equals("SVM")) 
+                {
                     output = SVM.train(output, approach + "_class_" + elem + ".template");
                 }
                 (new File(output)).renameTo(new File(model));
@@ -678,74 +694,62 @@ public class old_train {
             //test Model
             // Hacer opcional por parametro...
             //getFeatures(lang,"test/entities");
-            //System.out.println("Test...");
-
-
+            //Logger.Write("Test...");
 
             output = TempEvalFiles.merge_extents(localDatasetPath + lang + "/test/entities/base-segmentation.TempEval2-features", localDatasetPath + lang + "/test/entities/" + elem + "-extents.tab", elem);
             output = Classification.get_classik(output, lang);
-
-
-
-
-
-            if (method.equals("CRF")) {
+            
+            if (method.equals("CRF")) 
+            {
                 output = CRF.test(output, model);
             }
-            if (method.equals("SVM")) {
+            if (method.equals("SVM")) 
+            {
                 output = SVM.test(output, model);
             }
 
             String annot = dir + "/" + (new File(output)).getName();
             (new File(output)).renameTo(new File(annot));
-            /*PipesFile nlpannot = new PipesFile();
-            nlpannot.loadFile(new File(annot));
-            ((PipesFile) nlpannot).isWellFormedOptimist();*/
-
 
             key = TempEvalFiles.merge_extents(localDatasetPath + lang + "/test/entities/base-segmentation.TempEval2-features", localDatasetPath + lang + "/test/entities/" + elem + "-extents.tab", elem);
             key = TempEvalFiles.merge_attribs(localDatasetPath + lang + "/test/entities/base-segmentation.TempEval2-features-annotationKey-" + elem, localDatasetPath + lang + "/test/entities/" + elem + "-attributes.tab", elem);
             key = Classification.get_classik(key, lang);
 
-
-
-
-
-
-
             // TempEvalFiles-2 results
-            System.out.println("Results: " + approach);
+            Logger.Write("Results: " + approach);
             //TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
 
             // AnnotScore results
             Score score = scorer.score_class(annot, key, -1);
-            //score.print("attribs");
-            //score.print("detail");
-            //score.print(printopts);
-            score.print("");
 
-
-            if (baseline != null) {
+            if (baseline != null) 
+            {
                 File baselinef = null;
-                if (method.equals("CRF")) {
+                if (method.equals("CRF")) 
+                {
                     baselinef = new File(CRF.program_path + baseline + "_class_" + elem + ".template");
                 }
-                if (method.equals("SVM")) {
+                if (method.equals("SVM")) 
+                {
                     baselinef = new File(SVM.program_path + baseline + "_class_" + elem + ".template");
                 }
 
 
-                if (baselinef.exists()) {
+                if (baselinef.exists()) 
+                {
                     model = dir + "/" + baseline + "_class_" + elem + "_" + lang + "." + method + "model";
-                    if (!(new File(model)).exists() || retrain != null) {
+                    if (!(new File(model)).exists() || retrain != null) 
+                    {
                         output = TempEvalFiles.merge_extents(localDatasetPath + lang + "/train/base-segmentation.TempEval2-features", localDatasetPath + lang + "/train/" + elem + "-extents.tab", elem);
                         output = TempEvalFiles.merge_attribs(localDatasetPath + lang + "/train/base-segmentation.TempEval2-features-annotationKey-" + elem, localDatasetPath + lang + "/train/" + elem + "-attributes.tab", elem);
                         output = Classification.get_classik(output, lang);
 
-                        if (method.equals("CRF")) {
+                        if (method.equals("CRF"))
+                        {
                             output = CRF.train(output, baseline + "_class_" + elem + ".template");
                         }
-                        if (method.equals("SVM")) {
+                        if (method.equals("SVM")) 
+                        {
                             output = SVM.train(output, baseline + "_class_" + elem + ".template");
                         }
 
@@ -757,21 +761,17 @@ public class old_train {
                     output = Classification.get_classik(output, lang);
 
 
-                    if (method.equals("CRF")) {
+                    if (method.equals("CRF"))
+                    {
                         output = CRF.test(output, model);
                     }
-                    if (method.equals("SVM")) {
+                    if (method.equals("SVM")) 
+                    {
                         output = SVM.test(output, model);
                     }
                     String annot_nosr = dir + "/" + (new File(output)).getName();
 
                     (new File(output)).renameTo(new File(annot_nosr));
-                    /*PipesFile nlpannot_nosr = new PipesFile();
-                    nlpannot_nosr.loadFile(new File(annot_nosr));
-                    ((PipesFile) nlpannot_nosr).isWellFormedOptimist();*/
-
-
-
 
                     // Build key
                     key = TempEvalFiles.merge_extents(localDatasetPath + lang + "/test/entities/base-segmentation.TempEval2-features", localDatasetPath + lang + "/test/entities/" + elem + "-extents.tab", elem);
@@ -779,26 +779,20 @@ public class old_train {
                     key = Classification.get_classik(key, lang);
 
 
-                    System.out.println("Results: " + baseline);
+                    Logger.Write("Results: " + baseline);
                     Score score2 = scorer.score_class(annot_nosr, key, -1);
                     score2.print("");
 
-
-
                     // EN QUE MEJORAN LOS ROLES?
                     scorer.compare_scores(score, score2);
-
-
                 }
             }
 
 
-        } catch (Exception e) {
-            System.err.println("Errors found (Experimenter):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
+        } catch (Exception e) 
+        {
+        	Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e);
+            System.exit(1);
         }
     }
 
@@ -807,31 +801,36 @@ public class old_train {
         Scorer scorer = new Scorer();
         ArrayList<Score> approach_scores = new ArrayList<Score>();
         ArrayList<Score> baseline_scores = new ArrayList<Score>();
-        try {
+        try 
+        {
             File dir = new File(localDatasetPath + "experiments/" + approach + "/");
-            if (!dir.exists()) {
-                if (!dir.mkdirs()) {  // mkdir only creates one, mkdirs creates many parent dirs if needed
+            if (!dir.exists()) 
+            {
+                if (!dir.mkdirs()) 
+                {  // mkdir only creates one, mkdirs creates many parent dirs if needed
                     throw new Exception("Directory not created...");
                 }
             }
 
-
-
-
-            for (int n = 1; n <= 10; n++) {
+            for (int n = 1; n <= 10; n++) 
+            {
                 File dir2 = new File(dir + "/" + "fold" + n + "/");
-                if (!dir2.exists()) {
-                    if (!dir2.mkdirs()) {  // mkdir only creates one, mkdirs creates many parent dirs if needed
+                if (!dir2.exists()) 
+                {
+                    if (!dir2.mkdirs()) 
+                    {  // mkdir only creates one, mkdirs creates many parent dirs if needed
                         throw new Exception("Directory not created...");
                     }
                 }
-                System.out.println("\n\nFOLD " + n + "--------------\n\n");
+                Logger.Write("\n\nFOLD " + n + "--------------\n\n");
 
                 // Check for features files (train/test)
-                if (!(new File(localDatasetPath + lang + "/train" + n + "/base-segmentation." + "TempEval2-features")).exists()) {
+                if (!(new File(localDatasetPath + lang + "/train" + n + "/base-segmentation." + "TempEval2-features")).exists()) 
+                {
                     BaseTokenFeatures.getFeatures4Tab(lang, localDatasetPath + lang + "/train" + n + "/base-segmentation.tab", "TempEval2-features","TIPSem");
                 }
-                if (!(new File(localDatasetPath + lang + "/test" + n + "/base-segmentation." + "TempEval2-features")).exists()) {
+                if (!(new File(localDatasetPath + lang + "/test" + n + "/base-segmentation." + "TempEval2-features")).exists()) 
+                {
                     BaseTokenFeatures.getFeatures4Tab(lang, localDatasetPath + lang + "/test" + n + "/base-segmentation.tab", "TempEval2-features","TIPSem");
                 }
 
@@ -840,17 +839,20 @@ public class old_train {
 
 
 
-            if (!(new File(model)).exists() || retrain != null) {
+            if (!(new File(model)).exists() || retrain != null) 
+            {
 
                 output = TempEvalFiles.merge_extents(localDatasetPath + lang + "/train" + n + "/base-segmentation.TempEval2-features", localDatasetPath + lang + "/train" + n + "/" + elem + "-extents.tab", elem);
                 output =  TempEvalFiles.merge_attribs(localDatasetPath + lang + "/train" + n + "/base-segmentation.TempEval2-features-annotationKey-" + elem, localDatasetPath + lang + "/train" + n + "/" + elem + "-attributes.tab", elem);
                 output = Classification.get_classik(output, lang);
 
 
-                if (method.equals("CRF")) {
+                if (method.equals("CRF")) 
+                {
                     output = CRF.train(output, approach + "_class_" + elem + ".template");
                 }
-                if (method.equals("SVM")) {
+                if (method.equals("SVM")) 
+                {
                     output = SVM.train(output, approach + "_class_" + elem + ".template");
                 }
                 (new File(output)).renameTo(new File(model));
@@ -858,85 +860,75 @@ public class old_train {
             }
             //test Model
             // Hacer opcional por parametro...
-            //System.out.println("Test...");
-
-
+            //Logger.Write("Test...");
 
             output = TempEvalFiles.merge_extents(localDatasetPath + lang + "/test" + n + "/base-segmentation.TempEval2-features", localDatasetPath + lang + "/test" + n + "/" + elem + "-extents.tab", elem);
             output = Classification.get_classik(output, lang);
 
-
-
-
-
-            if (method.equals("CRF")) {
+            if (method.equals("CRF")) 
+            {
                 output = CRF.test(output, model);
             }
-            if (method.equals("SVM")) {
+            if (method.equals("SVM")) 
+            {
                 output = SVM.test(output, model);
             }
 
             String annot = dir + "/"  + "fold" + n + "/" + (new File(output)).getName();
             (new File(output)).renameTo(new File(annot));
-            /*PipesFile nlpannot = new PipesFile();
-            nlpannot.loadFile(new File(annot));
-            ((PipesFile) nlpannot).isWellFormedOptimist();*/
-
 
             key = TempEvalFiles.merge_extents(localDatasetPath + lang + "/test" + n + "/base-segmentation.TempEval2-features", localDatasetPath + lang + "/test" + n + "/" + elem + "-extents.tab", elem);
             key =  TempEvalFiles.merge_attribs(localDatasetPath + lang + "/test" + n + "/base-segmentation.TempEval2-features-annotationKey-" + elem, localDatasetPath + lang + "/test" + n + "/" + elem + "-attributes.tab", elem);
             key = Classification.get_classik(key, lang);
 
-
-
-
-
-
-
             // TempEvalFiles-2 results
-            System.out.println("Results: " + approach);
+            Logger.Write("Results: " + approach);
             //TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
 
             // AnnotScore results
             Score score = scorer.score_class(annot, key, -1);
 
-            if (show == null || show.equalsIgnoreCase("summary")) {
+            if (show == null || show.equalsIgnoreCase("summary")) 
+            {
                 score.print("");
-            } else {
-                if (show.equalsIgnoreCase("detail")) {
+            } else 
+            {
+                if (show.equalsIgnoreCase("detail")) 
+                {
                     score.print("detail");
                 }
             }
 
             approach_scores.add((Score) score.clone());
 
-
-            //score.print("attribs");
-            //score.print("detail");
-            //score.print(printopts);
-
-
-            if (baseline != null) {
+            if (baseline != null) 
+            {
                 File baselinef = null;
-                if (method.equals("CRF")) {
+                if (method.equals("CRF"))
+                {
                     baselinef = new File(CRF.program_path + "templates/" + baseline + "_class_" + elem + ".template");
                 }
-                if (method.equals("SVM")) {
+                if (method.equals("SVM")) 
+                {
                     baselinef = new File(SVM.program_path + "templates/" + baseline + "_class_" + elem + ".template");
                 }
 
 
-                if (baselinef.exists()) {
+                if (baselinef.exists()) 
+                {
                     model = dir + "/"  + "fold" + n + "/"+ baseline + "_class_" + elem + "_" + lang + "." + method + "model";
-                    if (!(new File(model)).exists() || retrain != null) {
+                    if (!(new File(model)).exists() || retrain != null) 
+                    {
                         output = TempEvalFiles.merge_extents(localDatasetPath + lang + "/train" + n + "/base-segmentation.TempEval2-features", localDatasetPath + lang + "/train" + n + "/" + elem + "-extents.tab", elem);
                         output =  TempEvalFiles.merge_attribs(localDatasetPath + lang + "/train" + n + "/base-segmentation.TempEval2-features-annotationKey-" + elem, localDatasetPath + lang + "/train" + n + "/" + elem + "-attributes.tab", elem);
                         output = Classification.get_classik(output, lang);
 
-                        if (method.equals("CRF")) {
+                        if (method.equals("CRF"))
+                        {
                             output = CRF.train(output, baseline + "_class_" + elem + ".template");
                         }
-                        if (method.equals("SVM")) {
+                        if (method.equals("SVM")) 
+                        {
                             output = SVM.train(output, baseline + "_class_" + elem + ".template");
                         }
 
@@ -948,21 +940,17 @@ public class old_train {
                     output = Classification.get_classik(output, lang);
 
 
-                    if (method.equals("CRF")) {
+                    if (method.equals("CRF"))
+                    {
                         output = CRF.test(output, model);
                     }
-                    if (method.equals("SVM")) {
+                    if (method.equals("SVM"))
+                    {
                         output = SVM.test(output, model);
                     }
                     String annot_nosr = dir + "/" + "fold" + n + "/" + (new File(output)).getName();
 
                     (new File(output)).renameTo(new File(annot_nosr));
-                    /*PipesFile nlpannot_nosr = new PipesFile();
-                    nlpannot_nosr.loadFile(new File(annot_nosr));
-                    ((PipesFile) nlpannot_nosr).isWellFormedOptimist();*/
-
-
-
 
                     // Build key
                     key = TempEvalFiles.merge_extents(localDatasetPath + lang + "/test" + n + "/base-segmentation.TempEval2-features", localDatasetPath + lang + "/test" + n + "/" + elem + "-extents.tab", elem);
@@ -970,24 +958,23 @@ public class old_train {
                     key = Classification.get_classik(key, lang);
 
 
-                    System.out.println("Results: " + baseline);
+                    Logger.Write("Results: " + baseline);
                     Score score2 = scorer.score_class(annot_nosr, key, -1);
 
-                    if (show == null || show.equalsIgnoreCase("summary")) {
+                    if (show == null || show.equalsIgnoreCase("summary"))
+                    {
                         score2.print("");
-                    } else {
-                        if (show.equalsIgnoreCase("detail")) {
+                    } else 
+                    {
+                        if (show.equalsIgnoreCase("detail")) 
+                        {
                             score2.print("detail");
                         }
                     }
 
                     baseline_scores.add((Score) score2.clone());
-
-
                     // EN QUE MEJORAN LOS ROLES?
                     //scorer.compare_scores(score, score2);
-
-
                 }
             }
             }
@@ -1003,7 +990,7 @@ public class old_train {
                     mean_F1 += approach_scores.get(fold).getF1TokenLevel(element);
                 }
                 mean_F1 = mean_F1 / 10.0;
-                System.out.println("\n\n\n----------------10 Fold (approach: " + approach + ")\n--> comp\\_accuracy\n \t& " + StringUtils.twoDecPosS(mean_F1));
+                Logger.Write("\n\n\n----------------10 Fold (approach: " + approach + ")\n--> comp\\_accuracy\n \t& " + StringUtils.twoDecPosS(mean_F1));
             }
 
             if (baseline_scores.size() == 10 && approach_scores.size() == 10) {
@@ -1037,49 +1024,49 @@ public class old_train {
 
                 mean_F1err = mean_F1err / 10.0;
 
-                System.out.println("\n----------------10 Fold (baseline: " + baseline + ")\n--> comp\\_accuracy\n \t& " + StringUtils.twoDecPosS(mean_F1b));
+                Logger.Write("\n----------------10 Fold (baseline: " + baseline + ")\n--> comp\\_accuracy\n \t& " + StringUtils.twoDecPosS(mean_F1b));
 
 
-                System.out.println("\n----------------10 Fold DIFFERENCES\n-->       c acc");
-                System.out.println("--> DIFF:  \t& " + StringUtils.twoDecPosS(mean_F1diff));
-                System.out.println("--> IMP:   \t& " + StringUtils.twoDecPosS(mean_F1imp));
-                System.out.println("--> ERR: \t& " + StringUtils.twoDecPosS(mean_F1err));
+                Logger.Write("\n----------------10 Fold DIFFERENCES\n-->       c acc");
+                Logger.Write("--> DIFF:  \t& " + StringUtils.twoDecPosS(mean_F1diff));
+                Logger.Write("--> IMP:   \t& " + StringUtils.twoDecPosS(mean_F1imp));
+                Logger.Write("--> ERR: \t& " + StringUtils.twoDecPosS(mean_F1err));
 
 
-                System.out.println("\n\ndiffACC significance:\n " +T_test.paired_t_test(diffsF1) + "");
+                Logger.Write("\n\ndiffACC significance:\n " +T_test.paired_t_test(diffsF1) + "");
 
-                System.out.println("\n\nimpACC significance:\n " +T_test.paired_t_test(impF1) + "");
+                Logger.Write("\n\nimpACC significance:\n " +T_test.paired_t_test(impF1) + "");
 
-                System.out.println("\n\nerrACC significance:\n " +T_test.paired_t_test(errF1) + "");
+                Logger.Write("\n\nerrACC significance:\n " +T_test.paired_t_test(errF1) + "");
 
 
                 boolean latex = true;
 
                 if (latex) {
-                    System.out.println("\n\n\\begin{table} [h]\n\\begin{footnotesize}\n\\begin{center}\n\\begin{tabular} {lccccc}\n\\hline\\rule{-2pt}{8pt}\n& \\textbf{" + baseline + "} & \\hspace{0.2cm} & \\textbf{" + approach + "}  & \\hspace{0.2cm} & \\textbf{Difference}\\\\");
-                    System.out.println("\\textbf{Dataset \\hspace{0.2cm}} \t& \\textbf{accuracy} \t& \t& \\textbf{accuracy} \t& \t& \\textbf{accuracy}\\\\\n  \\hline\\rule{-2pt}{8pt}");
+                    Logger.Write("\n\n\\begin{table} [h]\n\\begin{footnotesize}\n\\begin{center}\n\\begin{tabular} {lccccc}\n\\hline\\rule{-2pt}{8pt}\n& \\textbf{" + baseline + "} & \\hspace{0.2cm} & \\textbf{" + approach + "}  & \\hspace{0.2cm} & \\textbf{Difference}\\\\");
+                    Logger.Write("\\textbf{Dataset \\hspace{0.2cm}} \t& \\textbf{accuracy} \t& \t& \\textbf{accuracy} \t& \t& \\textbf{accuracy}\\\\\n  \\hline\\rule{-2pt}{8pt}");
                     for (int fold = 0; fold < 10; fold++) {
-                        System.out.println("\\textbf{Fold-" + (fold+1) + "} \t&  " + StringUtils.twoDecPosS(baseline_scores.get(fold).getF1TokenLevel(element)) + " \t& \t&  " + StringUtils.twoDecPosS(approach_scores.get(fold).getF1TokenLevel(element)) + " \t& \t&  " + StringUtils.twoDecPosS(diffsF1[fold]) + " \\\\");
+                        Logger.Write("\\textbf{Fold-" + (fold+1) + "} \t&  " + StringUtils.twoDecPosS(baseline_scores.get(fold).getF1TokenLevel(element)) + " \t& \t&  " + StringUtils.twoDecPosS(approach_scores.get(fold).getF1TokenLevel(element)) + " \t& \t&  " + StringUtils.twoDecPosS(diffsF1[fold]) + " \\\\");
                     }
-                    System.out.println("\\hline\\rule{-2pt}{8pt}");
-                    System.out.println("\\textbf{Mean} \t&  " + StringUtils.twoDecPosS(mean_F1b) + " \t& \t&  " + StringUtils.twoDecPosS(mean_F1) + " \t& \t& " + StringUtils.twoDecPosS(mean_F1diff) + " \\\\");
-                    System.out.println("\\hline\n\\end{tabular}\n\\ \\\\\\vspace{0.5cm}\\ \\\\");
+                    Logger.Write("\\hline\\rule{-2pt}{8pt}");
+                    Logger.Write("\\textbf{Mean} \t&  " + StringUtils.twoDecPosS(mean_F1b) + " \t& \t&  " + StringUtils.twoDecPosS(mean_F1) + " \t& \t& " + StringUtils.twoDecPosS(mean_F1diff) + " \\\\");
+                    Logger.Write("\\hline\n\\end{tabular}\n\\ \\\\\\vspace{0.5cm}\\ \\\\");
 
-                    System.out.println("\\begin{tabular} {lrlll}\n\\hline\\rule{-2pt}{8pt} \\textbf{Comparison} 	 & & & & \\\\\n\\textbf{TIPSem/TIPSem-B} & 	& \\textbf{Mean}  	& \\textbf{SD}	& \\textbf{t (p one-tail)} \\\\");
+                    Logger.Write("\\begin{tabular} {lrlll}\n\\hline\\rule{-2pt}{8pt} \\textbf{Comparison} 	 & & & & \\\\\n\\textbf{TIPSem/TIPSem-B} & 	& \\textbf{Mean}  	& \\textbf{SD}	& \\textbf{t (p one-tail)} \\\\");
 
-                    System.out.println("\\hline\\rule{-2pt}{8pt}\\textbf{Difference}");
+                    Logger.Write("\\hline\\rule{-2pt}{8pt}\\textbf{Difference}");
                     String ttest =T_test.paired_t_test(diffsF1);
-                    System.out.println("\t& \\textbf{ACC} \t& " + T_test.latex_t_test(ttest));
+                    Logger.Write("\t& \\textbf{ACC} \t& " + T_test.latex_t_test(ttest));
 
-                    System.out.println("\\hline\\rule{-2pt}{8pt}\\textbf{Improvement \\%}");
+                    Logger.Write("\\hline\\rule{-2pt}{8pt}\\textbf{Improvement \\%}");
                     ttest =T_test.paired_t_test(impF1);
-                    System.out.println("\t& \\textbf{ACC} \t& " + T_test.latex_t_test(ttest));
+                    Logger.Write("\t& \\textbf{ACC} \t& " + T_test.latex_t_test(ttest));
 
-                    System.out.println("\\hline\\rule{-2pt}{8pt}\\textbf{Relative error}");
+                    Logger.Write("\\hline\\rule{-2pt}{8pt}\\textbf{Relative error}");
                     ttest =T_test.paired_t_test(errF1);
-                    System.out.println("\\ \\textbf{reduction \\%} \t& \\textbf{ACC} \t& " + T_test.latex_t_test(ttest));
-                    System.out.println("\\hline\n\\end{tabular}\n\\end{center}\n\\caption{" + elem + " classification 10-fold (English)}\\label{tab:10-fold-"+elem+"-class}");
-                    System.out.println("\\end{footnotesize}\n\\end{table}");
+                    Logger.Write("\\ \\textbf{reduction \\%} \t& \\textbf{ACC} \t& " + T_test.latex_t_test(ttest));
+                    Logger.Write("\\hline\n\\end{tabular}\n\\end{center}\n\\caption{" + elem + " classification 10-fold (English)}\\label{tab:10-fold-"+elem+"-class}");
+                    Logger.Write("\\end{footnotesize}\n\\end{table}");
                 }
             }
 
@@ -1156,7 +1143,7 @@ public class old_train {
 
 
             // TempEvalFiles-2 results
-            System.out.println("Results: " + approach);
+            Logger.Write("Results: " + approach);
             //TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
 
             // AnnotScore results
@@ -1215,7 +1202,7 @@ public class old_train {
                     key = TimexNormalization.getTIMEN(keyfeatures, key, lang);
 
 
-                    System.out.println("Results: " + baseline);
+                    Logger.Write("Results: " + baseline);
                     Score score2 = scorer.score_class(annot_nosr, key, -1);
                     score2.print("");
 
@@ -1261,7 +1248,7 @@ public class old_train {
                 output = TimexNormalization.get_normalized_values_baseline(output);
             }
 
-            System.out.println(output);
+            Logger.Write(output);
             String annot = dir + "/" + (new File(output)).getName();
             (new File(output)).renameTo(new File(annot));
 
@@ -1273,7 +1260,7 @@ public class old_train {
 
 
             // TempEvalFiles-2 results
-            System.out.println("Trainset Results: " + approach);
+            Logger.Write("Trainset Results: " + approach);
             //TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
 
             // AnnotScore results
@@ -1291,7 +1278,7 @@ public class old_train {
                 output = TimexNormalization.get_normalized_values_baseline(output);
             }
 
-            System.out.println(output);
+            Logger.Write(output);
             annot = dir + "/" + (new File(output)).getName();
             (new File(output)).renameTo(new File(annot));
 
@@ -1303,7 +1290,7 @@ public class old_train {
 
 
             // TempEvalFiles-2 results
-            System.out.println("Testset Results: " + approach);
+            Logger.Write("Testset Results: " + approach);
             //TempEval_scorer.score_entities(extents, TempEvalpath +lang+"/test/entities/"+ elem + "-attributes.tab", lang, elem);
 
             // AnnotScore results
@@ -1311,13 +1298,10 @@ public class old_train {
             score.print("detail");
 
         } catch (Exception e) {
-            System.err.println("Errors found (Experimenter):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
+        	Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e);
+            System.exit(1);
         }
     }
 
-
 }
+*/
