@@ -15,6 +15,7 @@ import java.util.HashMap;
 import com.cognitionis.external_tools.IMachineLearningMethod;
 import com.cognitionis.feature_builder.BaseTokenFeatures;
 import com.cognitionis.feature_builder.Classification;
+import com.cognitionis.feature_builder.PlainTokenFeatures;
 import com.cognitionis.feature_builder.TimexNormalization;
 import com.cognitionis.nlp_files.NLPFile;
 import com.cognitionis.nlp_files.PipesFile;
@@ -396,7 +397,7 @@ private File train_dir;
 		    }
 
 		    String features = null;
-		    features = BaseTokenFeatures.getFeatures4Plain(lang, output, 1, false, "TempEval2-features", approach);
+		    features = PlainTokenFeatures.getFeatures(lang, output, 1, false, "TempEval2-features", approach);
 
 		    Logger.WriteDebug("Recognizing TIMEX3s");
 		    

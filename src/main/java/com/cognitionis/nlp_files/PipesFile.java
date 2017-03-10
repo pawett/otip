@@ -1,7 +1,9 @@
 package com.cognitionis.nlp_files;
 
 import java.io.*;
+import java.util.Hashtable;
 
+import com.cognitionis.tipsem.helpers.Logger;
 import com.cognitionis.utils_basickit.FileUtils;
 import com.cognitionis.utils_basickit.StringUtils;
 
@@ -12,6 +14,63 @@ import com.cognitionis.utils_basickit.StringUtils;
  */
 public class PipesFile extends NLPFile {
 
+	private Hashtable<String, String> descriptionFormats = new Hashtable<String, String>()
+			{
+				{	
+					put("e-dct-link-features", "file|lid|eiid|tid|e_class|e_pos|e_token|e_tense|e_tense-aspect|e_govPP|e_govTMPSub|gov_e_class|gov_e_pos|gov_e_token|gov_e_tense-aspect");
+					put("e-main-link-features", "file|lid|eiid1|eiid2|e1_class|e1_pos|e1_token|e1_tense|e1_tense-aspect|e2_class|e2_pos|e2_token|e2_tense|e2_tense-aspect");
+					put("e-sub-link-features","file|lid|eiid1|eiid2|e1_class|e1_pos|e1_token|e1_tense|e1_tense-aspect|e1_govPP|e1_govTMPSub|e2_class|e2_pos|e2_token|e2_tense|e2_tense-aspect|e2_govPP|e2_govTMPSub|syntrel");
+					put("e-t-link-features","file|lid|eiid|tid|e_class|e_pos|e_token|e_tense|e_tense-aspect|e_govPP|e_govTMPSub|t_type|t_ref|t_govPP|t_govTMPSub|synt_relation");
+					put("freeling","word|lemma|pos");
+					put("freeling-POS2","word|pos|syntbio|sentence|synt|verb|lemma|wn|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype|iobmainphrase|mainp-position|phra_id|PPdetail");
+					put("freeling-WNHyps","word|lemma|pos|wn");
+					put("freeling-WNHyps-POS2","word|pos|syntbio|sentence|synt|verb|lemma|wn|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype|iobmainphrase|mainp-position|phra_id|PPdetail");
+					put("journal2010-stats","word|pos|lemma|roleconf|phrase(IOB2)|wn|role(IOB2)|depv|role+depv(IOB2)");
+					put("journal2010-stats-annotatedWith","word|pos|lemma|roleconf|phrase(IOB2)|wn|role(IOB2)|depv|role+depv(IOB2)|element(IOB2)|attribs");
+					put("journal2010-stats-annotationKey","word|pos|lemma|roleconf|phrase(IOB2)|wn|role(IOB2)|depv|role+depv(IOB2)|element(IOB2)|attribs");
+					put("paired","token|pipe");
+					put("pipes","token|pipe");
+					put("pipes-annotatedWith","token|pipe");
+					put("pre","word|leading-blanks|pos|syntbio|sentence|synt|verb");
+					put("pre-treetag","word|leading-blanks|pos|syntbio|sentence|synt|lemma|verb");
+					put("pre-treetag-annotatedWith","word|leading-blanks|pos|syntbio|sentence|synt|lemma|verb|elementBIO|element-attribs");
+					put("pre-treetag-roleconfig","word|leading-blanks|pos|mainphra|sentence|synt|lemma|verb|roleconf");
+					put("pre-treetag-roleconfig-simpleroles","word|leading-blanks|pos|syntbio|sentence|synt|lemma|verb|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype");
+					put("pre-treetag-roleconfig-simpleroles-mainphrases","word|leading-blanks|pos|syntbio|sentence|synt|lemma|verb|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype|iobmainphrase|mainp-position|phra_id|PPdetail");
+					put("pre-treetag-roleconfig-simpleroles-mainphrases-WNHyps","word|leading-blanks|pos|syntbio|sentence|synt|lemma|verb|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype|iobmainphrase|mainp-position|phra_id|PPdetail|wn");
+					put("pre-treetag-roleconfig-simpleroles-mainphrases-WNHyps-annotationKey","word|leading-blanks|pos|syntbio|sentence|synt|verb|lemma|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype|iobmainphrase|mainp-position|phra_id|PPdetail|wn|element(IOB2)|attribs");
+					put("roth","word|pos|syntbio|sentence|synt|verb");
+					put("roth-treetag","word|pos|syntbio|sentence|synt|verb|lemma");
+					put("roth-treetag-roleconfig","word|pos|syntbio|sentence|synt|verb|lemma|roleconf");
+					put("roth-treetag-roleconfig-simpleroles","word|pos|syntbio|sentence|synt|verb|lemma|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype");
+					put("roth-treetag-roleconfig-simpleroles-mainphrases","word|pos|syntbio|sentence|synt|verb|lemma|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype|iobmainphrase|mainp-position|phra_id|PPdetail");
+					put("roth-treetag-roleconfig-simpleroles-mainphrases-WNHyps","word|pos|syntbio|sentence|synt|verb|lemma|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype|iobmainphrase|mainp-position|phra_id|PPdetail|wn");
+					put("roth-treetag-WNHyps","word|pos|syntbio|sentence|synt|verb|lemma|wn");
+					put("roth-treetag-WNHyps-roleconfig","word|pos|syntbio|sentence|synt|verb|lemma|wn|roleconf");
+					put("roth-treetag-WNHyps-roleconfig-simpleroles","word|pos|syntbio|sentence|synt|verb|lemma|wn|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype");
+					put("roth-treetag-WNHyps-roleconfig-simpleroles-mainphrases","word|pos|syntbio|sentence|synt|verb|lemma|wn|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype|iobmainphrase|mainp-position|phra_id|PPdetail");
+					put("TempEval2-features","file|sent-num|tok-num|word|pos|syntbio|sentence|synt|verb|lemma|wn|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype|iobmainphrase|mainp-position|phra_id|PPdetail");
+					put("TempEval2-features-annotatedWith","file|sent-num|tok-num|word|pos|syntbio|sentence|synt|verb|lemma|wn|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype|iobmainphrase|mainp-position|phra_id|PPdetail|element(IOB2)");
+					put("TempEval2-features-annotationKey","file|sent-num|tok-num|word|pos|syntbio|sentence|synt|verb|lemma|wn|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype|iobmainphrase|mainp-position|phra_id|PPdetail|element(IOB2)");
+					put("TempEval-attributes","file|sent-num|tok-num|tag|id|iid|attrname|attrvalue");
+					put("TempEval-bs","file|sent-num|tok-num|word");
+					put("TempEval-bs-annotationKey","file|sent-num|tok-num|word|element(IOB2)");
+					put("TempEval-classik-features","file|sent-num|tok-num|word|pos|lemma|rolesconf|simpleroles|depverb|tense|polarity|mainphrase|PPdetail|wn|extra1|extra2|extra3|extra4|extra5|extra6|element");
+					put("TempEval-classik-features-annotatedWith","file|sent-num|tok-num|word|pos|lemma|rolesconf|simpleroles|depverb|tense|polarity|mainphrase|PPdetail|wn|extra1|extra2|extra3|extra4|extra5|extra6|element|element2");
+					put("TempEval-extents","file|sent-num|tok-num|tag|id|iid");
+					put("TempEval-features.ANT","file|sent-num|tok-num|word|pos|syntbio|sentence|synt|verb|lemma|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype|iobmainphrase|mainp-position|phra_id|PPdetail|wn");
+					put("TempEval-features-annotatedWith","file|sent-num|tok-num|word|pos|syntbio|sentence|synt|verb|lemma|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype|iobmainphrase|mainp-position|phra_id|PPdetail|wn|element(IOB2)");
+					put("TempEval-features-annotationKey","file|sent-num|tok-num|word|pos|syntbio|sentence|synt|verb|lemma|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype|iobmainphrase|mainp-position|phra_id|PPdetail|wn|element(IOB2)");
+					put("TempEval-normalization","file|sent-num|tok-num|word|pos|lemma|rolesconf|simpleroles|depverb|tense|polarity|mainphrase|PPdetail|wn|extra1|extra2|extra3|extra4|extra5|extra6|element|te-type|DCT|ref-val|value");
+					put("TempEval-normalization-annotatedWith","file|sent-num|tok-num|word|pos|lemma|rolesconf|simpleroles|depverb|tense|polarity|mainphrase|PPdetail|wn|extra1|extra2|extra3|extra4|extra5|extra6|element|te-type|DCT|ref-val|value|norm-type2");
+					put("tok","word");
+					put("treetag","word|pos|lemma");
+					put("treetag-POS2","word|pos|syntbio|sentence|synt|verb|lemma|wn|roleconf|simplerolesIOB2|simplerolesIOB2_verb|simpleroles|depverb|tense|assertype|iobmainphrase|mainp-position|phra_id|PPdetail");
+					put("word","word");
+					
+					
+				}
+			};
     /*
      * Pipes description array
      */
@@ -29,63 +88,35 @@ public class PipesFile extends NLPFile {
     public Boolean isWellFormedOptimist() {
         try {
 
-            if (extension.matches("\\s*")) {
-                throw new Exception("PipesFile must have an extension (i.e., .tok)");
-            }
-            if (extension.contains("annotatedWith")) {
-                extension = extension.substring(0, extension.lastIndexOf("-annotatedWith") + 14);
-            }
+            SetExtension();
 
-            if (extension.contains("annotationKey")) {
-                extension = extension.substring(0, extension.lastIndexOf("-annotationKey") + 14);
-            }
+ 
 
-            File pipes_desc_file = new File(this.f.getCanonicalPath().substring(0, this.f.getCanonicalPath().lastIndexOf('/') + 1) + extension + ".pipes-desc");
-            if (!pipes_desc_file.exists() || !pipes_desc_file.isFile()) {
-                //System.out.println(FileUtils.getApplicationPath() + FileUtils.NLPFiles_descr_path + extension + ".pipes-desc");
-                pipes_desc_file = new File(FileUtils.getApplicationPath() + FileUtils.NLPFiles_descr_path + extension + ".pipes-desc");
-                if (!pipes_desc_file.exists() || !pipes_desc_file.isFile()) {
-                    throw new Exception("PipesFile description file (" + extension + ".pipes-desc) not found in " + pipes_desc_file.getCanonicalPath());
-                }
-            }
-
-            // read pipes desc, count fields (cols)
-            BufferedReader reader = new BufferedReader(new FileReader(pipes_desc_file));
-            try {
-                String line = null;
-                int linen = 0;
-                while ((line = reader.readLine()) != null) {
-                    linen++; //System.getProperty("line.separator")
+            
+                String line = descriptionFormats.get(extension);
+                                
                     if (line.equals("word")) {
                         pipes_desc_arr = new String[1];
                         pipes_desc_arr[0] = "word";
                         pipes_desc_arr_count = 1;
-                        break;
+                       
                     }
                     if (line.matches(".*\\|.*")) {
                         pipes_desc_arr = line.split("\\|");
                         pipes_desc_arr_count = pipes_desc_arr.length;
-                        break;
+                    
                     }
-                }
-            } finally {
-                if (reader != null) {
-                    reader.close();
-                }
-            }
+          
 
             if (pipes_desc_arr == null) {
-                throw new Exception(pipes_desc_file + " is not a valid PipesFile description file");
+                throw new Exception("not a valid PipesFile description file");
             }
 
 
 
         } catch (Exception e) {
-            System.err.println("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
+            Logger.WriteError("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n", e);
+            System.exit(1);
             return false;
         }
 
@@ -97,52 +128,24 @@ public class PipesFile extends NLPFile {
 
         try {
 
-            if (extension.matches("\\s*")) {
-                throw new Exception("PipesFile must have an extension (i.e., .tok)");
-            }
-            if (extension.contains("annotatedWith")) {
-                extension = extension.substring(0, extension.lastIndexOf("-annotatedWith") + 14);
-            }
+            SetExtension();
 
-            if (extension.contains("annotationKey")) {
-                extension = extension.substring(0, extension.lastIndexOf("-annotationKey") + 14);
-            }
-
-            File pipes_desc_file = new File(this.f.getCanonicalPath().substring(0, this.f.getCanonicalPath().lastIndexOf('/') + 1) + extension + ".pipes-desc");
-            if (!pipes_desc_file.exists() || !pipes_desc_file.isFile()) {
-                pipes_desc_file = new File(FileUtils.getApplicationPath() + FileUtils.NLPFiles_descr_path + extension + ".pipes-desc");
-                if (!pipes_desc_file.exists() || !pipes_desc_file.isFile()) {
-                    throw new Exception("PipesFile description file (" + extension + ".pipes-desc) not found in " + pipes_desc_file.getCanonicalPath());
-                }
-            }
-
-            // read pipes desc, count fields (cols)
-            BufferedReader reader = new BufferedReader(new FileReader(pipes_desc_file));
-            try {
-                String line = null;
-                int linen = 0;
-                while ((line = reader.readLine()) != null) {
-                    linen++; //System.getProperty("line.separator")
+                String line = descriptionFormats.get(extension);
+               
                     if (line.matches(".*\\|.*")) {
                         pipes_desc_arr = line.split("\\|");
                         pipes_desc_arr_count = pipes_desc_arr.length;
-                        break;
+                       
                     }
-                }
-            } finally {
-                if (reader != null) {
-                    reader.close();
-                }
-            }
-
+               
             if (pipes_desc_arr == null) {
-                throw new Exception(pipes_desc_file + " is not a valid PipesFile description file");
+                throw new Exception("not a valid PipesFile description file");
             }
 
             // read pipesFile line by line check that at least it have X piped cols
-            reader = new BufferedReader(new FileReader(this.f));
+            BufferedReader reader = new BufferedReader(new FileReader(this.f));
             try {
-                String line = null;
+                line = null;
                 String lastline = null;
 
                 int linen = 0;
@@ -170,11 +173,9 @@ public class PipesFile extends NLPFile {
             }
 
         } catch (Exception e) {
-            System.err.println("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
+            Logger.WriteError("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n", e);
+            System.exit(1);
+            
             return false;
         }
 
@@ -183,11 +184,27 @@ public class PipesFile extends NLPFile {
 
     }
 
-    public String[] getPipesDescArr() {
+	private void SetExtension() throws Exception 
+	{
+		if (extension.matches("\\s*")) {
+		    throw new Exception("PipesFile must have an extension (i.e., .tok)");
+		}
+		if (extension.contains("annotatedWith")) {
+		    extension = extension.substring(0, extension.lastIndexOf("-annotatedWith") + 14);
+		}
+
+		if (extension.contains("annotationKey")) {
+		    extension = extension.substring(0, extension.lastIndexOf("-annotationKey") + 14);
+		}
+	}
+
+    public String[] getPipesDescArr() 
+    {
         return this.pipes_desc_arr;
     }
 
-    public int getPipesDescArrCount() {
+    public int getPipesDescArrCount() 
+    {
         return this.pipes_desc_arr_count;
     }
 
@@ -196,7 +213,8 @@ public class PipesFile extends NLPFile {
      *
      * @return outputfilename
      */
-    public String sentSplit() {
+    public String sentSplit() 
+    {
         String outputfile = this.getFile().toString() + ".pipes";
         int numline = 0;
         try {
@@ -341,11 +359,8 @@ public class PipesFile extends NLPFile {
             }
 
         } catch (Exception e) {
-            System.err.println("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
+            Logger.WriteError("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n", e);
+            System.exit(1);
             return null;
         }
         return outputfile;
@@ -465,11 +480,8 @@ public class PipesFile extends NLPFile {
 
 
         } catch (Exception e) {
-            System.err.println("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
+           Logger.WriteError("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n", e);
+           System.exit(1);
             return null;
         }
         return outputfile;
@@ -602,16 +614,6 @@ public class PipesFile extends NLPFile {
                                 }
                             }
 
-
-
-
-
-
-
-
-
-
-
                             // Avoid symbols... when ulikely sentence/sent-part avoid
                             if (pipespair.matches("[\",%-]") && !modelpair.matches("[\",%-]") && !pairarr[syntcolumn].matches(".*\\((inc|nominalSent)((\\s+|\\().*)?")) {
                                 System.out.println("NOT!! Omit symbols ) -->");
@@ -732,9 +734,6 @@ public class PipesFile extends NLPFile {
                                             }
                                         }
 
-
-
-
                                         if (modelpair.equals(pipespair)) {
                                             paired = true;
                                             inMultiword = false;
@@ -847,10 +846,6 @@ public class PipesFile extends NLPFile {
                                             }
                                         }
 
-
-
-
-
                                         if (modelpair.equals(pipespair)) {
                                             paired = true;
                                             inMultiword = false;
@@ -900,10 +895,7 @@ public class PipesFile extends NLPFile {
                                             }
                                         }
                                     }
-
-
                                 }
-
                             }
                         }
                     }
@@ -992,11 +984,9 @@ public class PipesFile extends NLPFile {
 
 
         } catch (Exception e) {
-            System.err.println("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
+            Logger.WriteError("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n", e);
+            System.exit(1);
+         
             return null;
         }
         return outputfile;
@@ -1150,14 +1140,9 @@ public class PipesFile extends NLPFile {
                 }
             }
 
-
-
         } catch (Exception e) {
-            System.err.println("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
+            Logger.WriteError("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n", e);
+            System.exit(1);
             return null;
         }
         return outputfile;
@@ -1442,11 +1427,8 @@ public class PipesFile extends NLPFile {
 
 
         } catch (Exception e) {
-            System.err.println("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
+            Logger.WriteError("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n", e);
+            System.exit(1);
             return null;
         }
         return outputfile;
@@ -1460,9 +1442,8 @@ public class PipesFile extends NLPFile {
 
         String outputfile = null;
         try {
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                System.err.println("Cheking IOB2...");
-            }
+            Logger.WriteDebug("Cheking IOB2...");
+            
             outputfile = pipesfile.getFile().getCanonicalPath() + "-IOB2checked";
             BufferedWriter outfile = new BufferedWriter(new FileWriter(outputfile));
             BufferedReader pipesreader = new BufferedReader(new FileReader(pipesfile.getFile()));
@@ -1524,14 +1505,9 @@ public class PipesFile extends NLPFile {
                 }
             }
 
-
-
         } catch (Exception e) {
-            System.err.println("Errors found (TempEval):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
+            Logger.WriteError("Errors found (TempEval):\n\t" + e.toString() + "\n", e);
+            System.exit(1);
             return null;
         }
         return outputfile;
@@ -1586,8 +1562,8 @@ public class PipesFile extends NLPFile {
                     extentarr2 = extentline2.split("\\|");
 
                     if (!extentarr[iob2col1].equals("O") && !extentarr2[iob2col2].equals("O")) {
-                        System.err.println("Error merging pipes files!! overlaping elements.\n" +extentline+"\n"+extentline2);
-                        System.err.println("Ignoring event");
+                        Logger.Write("Error merging pipes files!! overlaping elements.\n" +extentline+"\n"+extentline2);
+                        Logger.Write("Ignoring event");
                     }
 
                     if (!extentarr[iob2col1].equals("O")) {
@@ -1624,14 +1600,9 @@ public class PipesFile extends NLPFile {
                 }
             }
 
-
-
         } catch (Exception e) {
-            System.err.println("Errors found (TempEval):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
+            Logger.WriteError("Errors found (TempEval):\n\t" + e.toString() + "\n", e);
+            System.exit(1);
             return null;
         }
         return outputfile;
@@ -1653,12 +1624,9 @@ public class PipesFile extends NLPFile {
             }
             //throw new Exception("Column " + colname_re + " not found");
         } catch (Exception e) {
-            System.err.println("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
-            return -1;
+           Logger.WriteError("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n", e);
+           System.exit(1);
+           return -1;
         }
         return -1;
     }
@@ -1707,17 +1675,12 @@ public class PipesFile extends NLPFile {
             }
 
         } catch (Exception e) {
-            System.err.println("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
+            Logger.WriteError("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n", e);
+            System.exit(1);
+            
             return null;
         }
         return outputfile;
-
-
-
     }
 
     /**
@@ -1746,12 +1709,9 @@ public class PipesFile extends NLPFile {
                 //return st;
             }
         } catch (Exception e) {
-            System.err.println("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n");
-            if (System.getProperty("DEBUG") != null && System.getProperty("DEBUG").equalsIgnoreCase("true")) {
-                e.printStackTrace(System.err);
-                System.exit(1);
-            }
-            //return null;
+            Logger.WriteError("Errors found (" + this.getClass().getSimpleName() + "):\n\t" + e.toString() + "\n", e);
+            System.exit(1);
+
         }
     }
 

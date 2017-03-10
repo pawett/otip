@@ -24,6 +24,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import com.cognitionis.feature_builder.BaseTokenFeatures;
+import com.cognitionis.feature_builder.PlainTokenFeatures;
 import com.cognitionis.nlp_files.NLPFile;
 import com.cognitionis.nlp_files.PipesFile;
 import com.cognitionis.nlp_files.PlainFile;
@@ -726,7 +727,7 @@ public class FileConverter {
                 // get plain
                 String plainfile = xmlfile.toPlain(output+".plain");
                 String features = null;
-                features = BaseTokenFeatures.getFeatures4Plain(lang, plainfile, 1, false, "TempEval2-features", approach);
+                features = PlainTokenFeatures.getFeatures(lang, plainfile, 1, false, "TempEval2-features", approach);
                 FileConverter.tmlfile2features4training(xmlfile, features);
 
                 // MERGE

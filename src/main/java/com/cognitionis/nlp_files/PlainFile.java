@@ -1,7 +1,6 @@
 package com.cognitionis.nlp_files;
 
-
-
+import com.cognitionis.tipsem.helpers.Logger;
 
 /**
  *
@@ -28,8 +27,7 @@ public class PlainFile extends NLPFile {
                 throw new Exception("No file loaded in NLPFile object");
             }
         } catch (Exception e) {
-            System.err.println("Errors found ("+this.getClass().getSimpleName()+"):\n\t" + e.toString() + "\n");
-            if(System.getProperty("DEBUG")!=null && System.getProperty("DEBUG").equalsIgnoreCase("true")){e.printStackTrace(System.err);}
+            Logger.WriteError("Errors found ("+this.getClass().getSimpleName()+"):\n\t" + e.toString() + "\n", e);
             return false;
         }
         return true;

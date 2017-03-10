@@ -16,6 +16,7 @@ import org.joda.time.DateTime;
 
 import com.cognitionis.feature_builder.BaseTokenFeatures;
 import com.cognitionis.feature_builder.Classification;
+import com.cognitionis.feature_builder.PlainTokenFeatures;
 import com.cognitionis.feature_builder.TimexNormalization;
 import com.cognitionis.nlp_files.NLPFile;
 import com.cognitionis.nlp_files.PipesFile;
@@ -197,17 +198,17 @@ public class TIP {
 				}
 			}
 
-			String features  = BaseTokenFeatures.getFeatures4Plain(lang, output, 1, false, "TempEval2-features", approach);
+			String features  = PlainTokenFeatures.getFeatures(lang, output, 1, false, "TempEval2-features", approach);
 
 			String timex_merged = null;
 			if (entities.contains("timex")) 
 			{
-				timex_merged = RecognizingTIMEX3(features);
+				timex_merged = RecognizeTIMEX3(features);
 			}
 
 			String event_merged = null;
 			if (entities.contains("event")) {
-				event_merged = RecognizingEvents(features);
+				event_merged = RecognizeEvents(features);
 			}
 			// Omit signals for the moment: wait for longer and better corpus
 			/*String signal;
@@ -243,7 +244,7 @@ public class TIP {
 
 
 			if (entities.contains("tlink")) {
-				RecognizingTLINKS(all_merged, pf, DCTs, timexes, events, makeinstances, links);
+				RecognizeTLINKS(all_merged, pf, DCTs, timexes, events, makeinstances, links);
 			}
 			// TML output: add links to the output
 			output = FileConverter.pipes2tml(pf, DCTs, makeinstances, links, header, footer, last_text_blanks);
@@ -256,7 +257,7 @@ public class TIP {
 		return ret;
 	}
 
-	private void RecognizingTLINKS(String all_merged, PipesFile pf, HashMap<String, Timex> DCTs,
+	private void RecognizeTLINKS(String all_merged, PipesFile pf, HashMap<String, Timex> DCTs,
 			HashMap<String, HashMap<String, Timex>> timexes, HashMap<String, HashMap<String, Event>> events,
 			HashMap<String, HashMap<String, Event>> makeinstances, HashMap<String, HashMap<String, Link>> links) {
 		Logger.WriteDebug("Recognizing TLINKs");
@@ -281,7 +282,7 @@ public class TIP {
 		}
 	}
 
-	private String RecognizingEvents(String features) {
+	private String RecognizeEvents(String features) {
 		String output;
 		String event_merged;
 		Logger.WriteDebug("Recognizing EVENTs");
@@ -302,7 +303,7 @@ public class TIP {
 		return event_merged;
 	}
 
-	private String RecognizingTIMEX3(String features) {
+	private String RecognizeTIMEX3(String features) {
 		String output;
 		String timex_merged;
 		Logger.WriteDebug("Recognizing TIMEX3s");
@@ -443,11 +444,7 @@ public class TIP {
 	public  String annotate_links(String strategy) {
 		String ret = null;
 		try {
-			if (models_path == null || models_path.equals("")) {
-				models_path = "";
-			} else {
-				models_path += File.separator;
-			}
+			
 
 			if(strategy==null) strategy="normal";
 
@@ -556,7 +553,7 @@ public class TIP {
 			}
 
 			String features = null;
-			features = BaseTokenFeatures.getFeatures4Plain(lang, output, 1, false, "TempEval2-features", approach);
+			features = PlainTokenFeatures.getFeatures(lang, output, 1, false, "TempEval2-features", approach);
 			NLPFile featuresfile=new PipesFile(features);
 			featuresfile.isWellFormatted();
 			featuresfile.setLanguage(lang);
