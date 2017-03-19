@@ -11,7 +11,7 @@ import com.cognitionis.utils_basickit.FileUtils;
  */
 public class CRF implements IMachineLearningMethod {
     // path is not necessary but is used to capture temporal files (if there are), or default templates
-    public static String program_path = "/home/pawett/TipSEM/program-data/CRF++/";
+    public static String program_path = "/home/pawett/tipSem/otip/program-data/CRF++/";
     		//FileUtils.getApplicationPath() + "program-data/CRF++/";
     private final String modelFileExtension = ".CRFmodel";
     /**

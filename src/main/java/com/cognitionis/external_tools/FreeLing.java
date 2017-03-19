@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
+import edu.upc.freeling.*;
 
 import com.cognitionis.utils_basickit.FileUtils;
 
@@ -38,6 +39,9 @@ public class FreeLing {
 
     public static String run(String filename, String lang, int tokenize) {
         String outputfile = filename + ".freeling";
+        String configFileTipSem = program_path+lang.toLowerCase()+".cfg";
+        program_path = "/usr/local/share/freeling/config/";
+        
         try {
             String[] command=new String[3];
             command[0]="/bin/sh";
@@ -46,7 +50,7 @@ public class FreeLing {
             if(tokenize==0){
                 command[2]="cat \""+filename+"\" | tr \"|\" \"-\" | iconv -c -t iso-8859-1 | analyze -f "+program_path+lang.toLowerCase()+".cfg --inpf token | iconv -c -f iso-8859-1 | cut -f 1-3 -d \" \" | tr \" \" \"|\" | sed \"s/^[[:blank:]]*\\$/|/\"";
             }else{
-                command[2]="cat \""+filename+"\" | tr \"|\" \"-\" | iconv -c -t iso-8859-1 | analyze -f "+program_path+lang.toLowerCase()+".cfg --inpf plain | iconv -c -f iso-8859-1 | cut -f 1-3 -d \" \" | tr \" \" \"|\" | sed \"s/^[[:blank:]]*\\$/|/\"";
+                command[2]="cat \""+filename+"\" | tr \"|\" \"-\" | iconv -c -t iso-8859-1 | analyze -f "+program_path+lang.toLowerCase()+".cfg --input text | iconv -c -f iso-8859-1 | cut -f 1-3 -d \" \" | tr \" \" \"|\" | sed \"s/^[[:blank:]]*\\$/|/\"";
             }
 
             // UTF-8 works but tagging does not work properly

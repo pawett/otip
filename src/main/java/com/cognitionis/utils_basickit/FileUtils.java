@@ -66,7 +66,7 @@ public class FileUtils {
 	public static String Plain = "Plain";
 	public static String Tab = "Tab";
 	// Important File Paths
-	public static String ApplicationPath = "/home/pawett/TipSEM/";
+	public static String ApplicationPath = "/home/pawett/tipSem/otip/";
 	public static FileFilter onlyFilesFilter = new FileFilter() {
 
 		@Override

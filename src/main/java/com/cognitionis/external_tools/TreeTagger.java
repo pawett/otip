@@ -14,9 +14,9 @@ public class TreeTagger {
 
 
     //private static String program_path = FileUtils.getApplicationPath() + "program-data/TreeTagger/";
-    private static String program_path = get_path();
-    private static String program_bin = program_path + "bin/tree-tagger";
-    private static String program_bin_tokenizer = program_path + "tree-tagger-english";
+    private static String program_path = "/home/pawett/tipSem/otip/program-data/TreeTagger/";
+    private static String program_bin = "/home/pawett/tipSem/otip/program-data/TreeTagger/bin";
+    private static String program_bin_tokenizer = "/home/pawett/tipSem/otip/program-data/TreeTagger/tree-tagger-english";
     private static String program_model = program_path + "lib/english.par"; // par stands for parameter file
 
 
@@ -25,6 +25,7 @@ public class TreeTagger {
         Properties prop = new Properties();
         String ret=null;
         try{
+        	String ttpath = FileUtils.getApplicationPath() + "program-data"+File.separator+"config.properties";
             prop.load(new FileInputStream(FileUtils.getApplicationPath() + "program-data"+File.separator+"config.properties"));
             ret=prop.getProperty("treetagerpath");
             if(ret==null){
