@@ -45,15 +45,6 @@ public class Classification {
     }
 
 
-
-
-
-
-
-
-
-
-
     public static String getClassikFormat(PipesFile pipesfile, Locale l) {
         String outputfile = null;
         int numline = 0;
