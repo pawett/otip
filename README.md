@@ -57,7 +57,8 @@ Requirements:
 			Otherwse set TreeTagger in any path and tune 
 			program-data/config.properties file.
 			By default renamed to example.config.properties
-
+- WordNet: For ubuntu, jus add it with $sudo apt-get install wordnet
+-FreeLing: Last version 4.0 tested: Follow the instructions from here (Ubuntu 16.X: http://nlp.lsi.upc.edu/freeling/node/604
 * For compiling CRF++ if 0.58 you can use g++ >=4.6 < 0.55, g++ compiler must be <= 4.5.
 (e.g., UBUNTU -- two versions of g++ can coexist: sudo apt-get install g++-4.4 
 	--> ./configure CXX=g++-4.4 --prefix $HOME/local && make && make install)
@@ -70,8 +71,7 @@ Optional: Only if you are an expert on installing libraries -------------------
 
 * For compiling Yamcha downgrade compiler to 4.1 (./configure CXX=g++-4.1).
 	You need to install g++-4.1.
-	(e.g., UBUNTU LTS versions: sudo apt-get install g++-4.1)
-
+	In modern distributions, g++4.1 is no longer available. It is possible to download a previous version (3.4.6) from here: https://drive.google.com/file/d/0B7S255p3kFXNV3J3bnVoWGNWdG8/view?usp=sharing (deb package). Install and you'll be ble to complite and install yamcha (with ./configure CXX=g++346 
 
 IMPORTANT NOTE:
 	- If you never installed a library in Linux you probably need to export 
