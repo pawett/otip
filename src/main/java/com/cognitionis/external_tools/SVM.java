@@ -14,7 +14,7 @@ public class SVM implements IMachineLearningMethod {
 
     // path is not necessary but is used to capture temporal files (if there are), or default templates
     //public static String program_path = FileUtils.getApplicationPath() + "program-data/SVM/";
-	public static String program_path = "/home/pawett/TipSEM/program-data/SVM/";
+	public static String program_path = "/home/pawett/tipSem/otip/target/program-data/SVM/";
     private final String modelFileExtension = ".SVMmodel";
 
     /**
@@ -126,8 +126,9 @@ public class SVM implements IMachineLearningMethod {
     }
 
 
-    public  String Test(String featuresfile, String modelfile) {
-        modelfile = modelfile + modelFileExtension;
+    public  String Test(String featuresfile, String models_path, String approach, String type, String lang) {
+    	String modelfile =  models_path + approach + "_" + type + "_" + lang.toUpperCase();
+    	modelfile =	modelfile + modelFileExtension;
     	int folderposition=modelfile.lastIndexOf('/');
         String outputfile = featuresfile + "-annotatedWith-SVMmodel-" + modelfile.substring(folderposition+1, modelfile.lastIndexOf('.'));
         try {

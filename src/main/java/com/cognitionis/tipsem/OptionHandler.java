@@ -31,6 +31,8 @@ import com.cognitionis.tipsem.helpers.Logger;
 import com.cognitionis.utils_basickit.FileUtils;
 import com.cognitionis.wiki_basickit.Wiki_bk;
 
+import domain.TokenizedFile;
+
 /**
  * @author Hector Llorens
  * @since 2011
@@ -108,19 +110,19 @@ private File train_dir;
 			this.mlmethod  = new com.cognitionis.external_tools.SVM();
 		}
 		
-		String approach = getParameter("approach");
+		this.approach = getParameter("approach");
 		if (approach == null) {
 		    this.approach = "TIPSemB";
 		}
-		String task = getParameter("task");
+		this.task = getParameter("task");
 		if (task == null) {
 		    this.task = "recognition";
 		}
-		String element = getParameter("element");
+		this.element = getParameter("element");
 		if (element == null) {
 		    this.element = "timex";
 		}
-		String strategy = getParameter("strategy");
+		this.strategy = getParameter("strategy");
 		if (strategy == null) {
 		    this.strategy = "normal";
 		}
@@ -200,7 +202,7 @@ private File train_dir;
         		Annotate(new com.cognitionis.external_tools.CRF());
         		break;
         	case TAN:
-        		Tan();
+        		//Tan();
         		break;
         	case TML_NFOLD: 
         		TmnFold();
@@ -235,16 +237,16 @@ private File train_dir;
 		switch(task.toLowerCase())
 		{
 		case "recognition":
-			trainModel.Recognition_tml(element.toLowerCase());
+			//trainModel.Recognition_tml(element.toLowerCase());
 			break;
 		case "classification":
-			 trainModel.Classification_tml(element.toLowerCase());
+			// trainModel.Classification_tml(element.toLowerCase());
 			break;
 		case "normalization":
-			trainModel.NormalizationType_tml("timex");
+			//trainModel.NormalizationType_tml("timex");
 			break;
 		case "categorization":
-			trainModel.Categorization_tml(element.toLowerCase());
+			//trainModel.Categorization_tml(element.toLowerCase());
 			break;
 		case "idcat":
 			trainModel.idcat_tml(strategy);
@@ -337,7 +339,7 @@ private File train_dir;
 		then use tml_training tml_testing 10 fold...*/
 	}
 
-	private void Tan()
+/*	private void Tan()
 			throws FileNotFoundException, Exception, ParseException, IOException {
 		
 		ArrayList<NLPFile> nlp_files = getInputFiles();
@@ -396,12 +398,13 @@ private File train_dir;
 		        }
 		    }
 
-		    String features = null;
-		    features = PlainTokenFeatures.getFeatures(lang, output, 1, false, "TempEval2-features", approach);
-
+		   
+		    TokenizedFile features  = PlainTokenFeatures.getFeatures(nlpfile, lang, 1, false, output, approach);
+		    File featuresFile = features.toFile();
+		    
 		    Logger.WriteDebug("Recognizing TIMEX3s");
 		    
-		    String timex = tipStrategy.getTimexProcessing().getRecognition().Test(features, approach + "_rec_timex_" + nlpfile.getLanguage().toUpperCase() + ".CRFmodel");
+		    String timex = tipStrategy.getTimexProcessing().getRecognition().Test(featuresFile.getAbsolutePath(), approach, "rec_timex", nlpfile.getLanguage().toUpperCase());
 		    PipesFile nlpfile_temp = new PipesFile(timex);
 		    ((PipesFile) nlpfile_temp).isWellFormedOptimist();
 		    timex = PipesFile.IOB2check(nlpfile_temp);
@@ -410,12 +413,12 @@ private File train_dir;
 		    Logger.WriteDebug("Classifying TIMEX3s");
 		    
 		    output = Classification.get_classik(timex, lang);
-		    String timex_class = tipStrategy.getTimexProcessing().getClassification().Test(output, approach + "_class_timex_" + nlpfile.getLanguage().toUpperCase() + ".CRFmodel");
+		    String timex_class = tipStrategy.getTimexProcessing().getClassification().Test(output, approach, "class_timex", nlpfile.getLanguage().toUpperCase());
 
 		    Logger.WriteDebug("Normalizing TIMEX3s (DCT=" + dct.get_value() + ")");
 		    
 		    output = TimexNormalization.getTIMEN(timex, timex_class, lang);
-		    output = tipStrategy.getTimexProcessing().getNormalization().Test(output, approach + "_timen_timex_" + nlpfile.getLanguage().toUpperCase() + ".CRFmodel");
+		    output = tipStrategy.getTimexProcessing().getNormalization().Test(output, approach, "timen_timex", nlpfile.getLanguage().toUpperCase());
 		    String timex_norm = TimexNormalization.get_normalized_values(output, lang);
 
 		    output = TempEvalFiles.merge_classik(timex, timex_class, "type");
@@ -423,7 +426,7 @@ private File train_dir;
 
 		    Logger.WriteDebug("Recognizing EVENTs");
 		    
-		    String event = tipStrategy.getEventProcessing().getRecognition().Test(features, approach + "_rec_event_" + nlpfile.getLanguage().toUpperCase() + ".CRFmodel");
+		    String event = tipStrategy.getEventProcessing().getRecognition().Test(featuresFile.getAbsolutePath(), approach + "_rec_event_" + nlpfile.getLanguage().toUpperCase());
 		    nlpfile_temp = new PipesFile(event);
 		    ((PipesFile) nlpfile_temp).isWellFormedOptimist();
 		    event = PipesFile.IOB2check(nlpfile_temp);
@@ -506,15 +509,15 @@ private File train_dir;
 
 		    BaseTokenFeatures.clean(dir + File.separator);
 
-		    /*System.err.print("Executing for " + output);
-		    output = CRF.test(output, eventmodel);
-		    System.err.println(" saving output in " + output);*/
+		    //System.err.print("Executing for " + output);
+		    //output = CRF.test(output, eventmodel);
+		    //System.err.println(" saving output in " + output);
 
 
 		    // falta abrir output i convertir a xml (fusionando las columnas...)
 		    // si es con classificación normalización, etc.. -> varios ficheros...
 		}
-	}
+	}*/
 
 
 	private void Annotate(IMachineLearningMethod method)
@@ -566,7 +569,7 @@ private File train_dir;
 		{
 			Logger.Write("\n\nFile: " + nlpfile.getFile() + " Language:" + nlpfile.getLanguage());
 			String output=null;
-			TIP tip = new TIP(nlpfile, inputf, approach, lang, entities, dctvalue, null, new TemporalInformationProcessingStrategy(method));
+			TIP tip = new TIP(nlpfile, inputf, approach, lang, entities, dctvalue, null, new TemporalInformationProcessingStrategy(lang));
 			if(!entities.matches("(tlink|tlink-rel-only)"))
 				output= tip.Annotate();
 			else

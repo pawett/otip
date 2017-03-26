@@ -3,6 +3,9 @@ package com.cognitionis.external_tools;
 import java.io.*;
 
 import com.cognitionis.utils_basickit.FileUtils;
+
+import domain.FilesType;
+import domain.TokenizedFile;
         
 /**
  * REGULAR INSTALLATION AND INCLUSION IN PATH REQUIRED
@@ -11,7 +14,7 @@ import com.cognitionis.utils_basickit.FileUtils;
  */
 public class CRF implements IMachineLearningMethod {
     // path is not necessary but is used to capture temporal files (if there are), or default templates
-    public static String program_path = "/home/pawett/tipSem/otip/program-data/CRF++/";
+    public static String program_path = "/home/pawett/tipSem/otip/target/program-data/CRF++/";
     		//FileUtils.getApplicationPath() + "program-data/CRF++/";
     private final String modelFileExtension = ".CRFmodel";
     /**
@@ -138,8 +141,9 @@ public class CRF implements IMachineLearningMethod {
      * @param template
      * @return Output filename
      */
-    public String Test(String featuresfile, String modelfile) {
-    	modelfile = modelfile + modelFileExtension;
+    public String Test(String featuresfile, String models_path, String approach, String type, String lang) {
+    	String modelfile =  models_path + approach + "_" + type + "_" + lang.toUpperCase();
+    	modelfile =	modelfile + modelFileExtension;
     	int folderposition = modelfile.lastIndexOf('/');
         String outputfile = featuresfile + "-annotatedWith-CRFmodel-" + modelfile.substring(folderposition + 1, modelfile.lastIndexOf('.'));
         try {
@@ -188,8 +192,10 @@ public class CRF implements IMachineLearningMethod {
             
             stdInput = new BufferedReader(new InputStreamReader(p.getInputStream()));
             try {
+            	TokenizedFile file = new TokenizedFile(FilesType.TempEval2_features_annotatedWith, "en", "CRF");
                 String line;
                 while ((line = stdInput.readLine()) != null) {
+                	file.addFromPipes(line);
                     System.err.println(line);
                 }
             } finally {

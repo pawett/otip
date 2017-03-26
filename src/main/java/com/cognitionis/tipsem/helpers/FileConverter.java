@@ -40,6 +40,8 @@ import com.cognitionis.timeml_basickit.comparators.AscINT_lid_Comparator;
 import com.cognitionis.utils_basickit.FileUtils;
 import com.cognitionis.utils_basickit.StringUtils;
 
+import domain.TokenizedFile;
+
 /**
  * @author Hector Llorens
  * @since 2011
@@ -726,9 +728,10 @@ public class FileConverter {
 
                 // get plain
                 String plainfile = xmlfile.toPlain(output+".plain");
-                String features = null;
-                features = PlainTokenFeatures.getFeatures(lang, plainfile, 1, false, "TempEval2-features", approach);
-                FileConverter.tmlfile2features4training(xmlfile, features);
+               
+                TokenizedFile features  = PlainTokenFeatures.getFeatures(nlpfile, lang, 1, false, output, approach);
+                File featuresFile = features.toFile();
+                FileConverter.tmlfile2features4training(xmlfile, featuresFile.getAbsolutePath());
 
                 // MERGE
 

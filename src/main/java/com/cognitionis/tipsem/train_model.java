@@ -86,7 +86,7 @@ public class train_model {
 	};
 
 
-	public void Recognition_tml(String elem) {
+	/*public void Recognition_tml(String elem) {
 		String output = "";
 		PipesFile nlpfile;
 		Scorer scorer = new Scorer();
@@ -149,9 +149,9 @@ public class train_model {
 		} catch (Exception e) {
 			Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e);  
 		}
-	}
+	}*/
 
-	public void Classification_tml(String elem) {
+	/*public void Classification_tml(String elem) {
 		String output = "", key;
 		Scorer scorer = new Scorer();
 		try {
@@ -187,9 +187,9 @@ public class train_model {
 
 			String annot = dir + File.separator + (new File(output)).getName();
 			(new File(output)).renameTo(new File(annot));
-			/*PipesFile nlpannot = new PipesFile();
-            nlpannot.loadFile(new File(annot));
-            ((PipesFile) nlpannot).isWellFormedOptimist();*/
+			//PipesFile nlpannot = new PipesFile();
+            //nlpannot.loadFile(new File(annot));
+            //((PipesFile) nlpannot).isWellFormedOptimist();
 
 
 			key = TempEvalFiles.merge_extents(test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + "base-segmentation.TempEval2-features", test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + elem + "-extents.tab", elem);
@@ -211,9 +211,9 @@ public class train_model {
 		} catch (Exception e) {
 			Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e); 
 		}
-	}
+	}*/
 
-	public void NormalizationType_tml(String elem) {
+	/*public void NormalizationType_tml(String elem) {
 		String output = "", key;
 		Scorer scorer = new Scorer();
 		try {
@@ -264,9 +264,9 @@ public class train_model {
 		} catch (Exception e) {
 			Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e);
 		}
-	}
+	}*/
 
-	public void Categorization_tml(String elem) {
+	/*public void Categorization_tml(String elem) {
 		String output = "", key;
 		Scorer scorer = new Scorer();
 		try {
@@ -299,10 +299,10 @@ public class train_model {
 
 			String annot = dir + File.separator + (new File(output)).getName();
 			(new File(output)).renameTo(new File(annot));
-			/*PipesFile nlpannot = new PipesFile();
-            nlpannot.loadFile(new File(annot));
-            ((PipesFile) nlpannot).isWellFormedOptimist();
-			 */
+			//PipesFile nlpannot = new PipesFile();
+            //nlpannot.loadFile(new File(annot));
+            //((PipesFile) nlpannot).isWellFormedOptimist();
+			 
 			key = test_dir.getCanonicalPath() + "_" + approach + "_features" + File.separator + category_files.get(elem) + "-annotationKey";
 
 
@@ -321,7 +321,7 @@ public class train_model {
 			Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e);
 		}
 
-	}
+	}*/
 
 	// test normalization...
 	public void Normalization_tml(String elem) {

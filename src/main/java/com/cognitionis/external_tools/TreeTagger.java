@@ -14,9 +14,9 @@ public class TreeTagger {
 
 
     //private static String program_path = FileUtils.getApplicationPath() + "program-data/TreeTagger/";
-    private static String program_path = "/home/pawett/tipSem/otip/program-data/TreeTagger/";
-    private static String program_bin = "/home/pawett/tipSem/otip/program-data/TreeTagger/bin";
-    private static String program_bin_tokenizer = "/home/pawett/tipSem/otip/program-data/TreeTagger/tree-tagger-english";
+    private static String program_path = "/home/pawett/tipSem/otip/target/program-data/TreeTagger/";
+    private static String program_bin = "/home/pawett/tipSem/otip/target/program-data/TreeTagger/bin/tree-tagger";
+    private static String program_bin_tokenizer = "/home/pawett/tipSem/otip/target/program-data/TreeTagger/tree-tagger-english";
     private static String program_model = program_path + "lib/english.par"; // par stands for parameter file
 
 
@@ -242,16 +242,6 @@ public class TreeTagger {
 
 
     }
-
-
-
-
-
-
-
-
-
-
 
 
 

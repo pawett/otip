@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -31,6 +32,8 @@ import com.cognitionis.tipsem.helpers.Logger;
 import com.cognitionis.utils_basickit.FileUtils;
 
 import domain.Document;
+import domain.FilesType;
+import domain.TokenizedFile;
 
 /**
  * @author Hector Llorens
@@ -198,17 +201,18 @@ public class TIP {
 				}
 			}
 
-			String features  = PlainTokenFeatures.getFeatures(lang, output, 1, false, "TempEval2-features", approach);
-
+			TokenizedFile features  = PlainTokenFeatures.getFeatures(nlpfile, lang, 1, false, output, approach);
+			features.setType(FilesType.TempEval2_features);
+			File featuresFile = features.toFile();
 			String timex_merged = null;
 			if (entities.contains("timex")) 
 			{
-				timex_merged = RecognizeTIMEX3(features);
+				timex_merged = RecognizeTIMEX3(featuresFile.getAbsolutePath());
 			}
 
 			String event_merged = null;
 			if (entities.contains("event")) {
-				event_merged = RecognizeEvents(features);
+				event_merged = RecognizeEvents(featuresFile.getAbsolutePath());
 			}
 			// Omit signals for the moment: wait for longer and better corpus
 			/*String signal;
@@ -271,11 +275,11 @@ public class TIP {
 		if (!entities.contains("tlinkspecial")) {
 			String etlinks = "";
 			String edctlinks = "";
-			etlinks = method.getTemporalRelationProcessing().getEvent_timex().Test(basefile + ".e-t-link-features", models_path + approach + "_categ_e-t_" + nlpfile.getLanguage().toUpperCase());
-			edctlinks = method.getTemporalRelationProcessing().getEvent_DCT().Test(basefile + ".e-dct-link-features", models_path + approach + "_categ_e-dct_" + nlpfile.getLanguage().toUpperCase());
+			etlinks = method.getTemporalRelationProcessing().getEvent_timex().Test(basefile + ".e-t-link-features", models_path, approach, "categ_e-t", nlpfile.getLanguage().toUpperCase());
+			edctlinks = method.getTemporalRelationProcessing().getEvent_DCT().Test(basefile + ".e-dct-link-features", models_path, approach, "categ_e-dct", nlpfile.getLanguage().toUpperCase());
 			
-			String emainlinks = method.getTemporalRelationProcessing().getMain_events().Test(basefile + ".e-main-link-features", models_path + approach + "_categ_e-main_" + nlpfile.getLanguage().toUpperCase());
-			String esublinks = method.getTemporalRelationProcessing().getSubordinate_events().Test(basefile + ".e-sub-link-features", models_path + approach + "_categ_e-sub_" + nlpfile.getLanguage().toUpperCase());
+			String emainlinks = method.getTemporalRelationProcessing().getMain_events().Test(basefile + ".e-main-link-features", models_path, approach, "categ_e-main",  nlpfile.getLanguage().toUpperCase());
+			String esublinks = method.getTemporalRelationProcessing().getSubordinate_events().Test(basefile + ".e-sub-link-features", models_path, approach, "categ_e-sub",  nlpfile.getLanguage().toUpperCase());
 			ElementFiller.updateLinks(etlinks, edctlinks, emainlinks, esublinks, links);
 		} else {
 			Logger.Write("Unavailable for now");
@@ -287,7 +291,7 @@ public class TIP {
 		String event_merged;
 		Logger.WriteDebug("Recognizing EVENTs");
 
-		String event = method.getEventProcessing().getRecognition().Test(features, models_path + approach + "_rec_event_" + nlpfile.getLanguage().toUpperCase());
+		String event = method.getEventProcessing().getRecognition().Test(features, models_path, approach, "rec_event",  nlpfile.getLanguage().toUpperCase());
 		PipesFile nlpfile_temp = new PipesFile(event);
 		((PipesFile) nlpfile_temp).isWellFormedOptimist();
 		event = PipesFile.IOB2check(nlpfile_temp);
@@ -297,7 +301,7 @@ public class TIP {
 		output = Classification.get_classik(event, lang);
 		String event_class;
 		
-		event_class= method.getEventProcessing().getClassification().Test(output, models_path + approach + "_class_event_" + nlpfile.getLanguage().toUpperCase());
+		event_class= method.getEventProcessing().getClassification().Test(output, models_path, approach, "class_event", nlpfile.getLanguage().toUpperCase());
 		
 		event_merged = TempEvalFiles.merge_classik(event, event_class, "class");
 		return event_merged;
@@ -308,9 +312,9 @@ public class TIP {
 		String timex_merged;
 		Logger.WriteDebug("Recognizing TIMEX3s");
 
-		String timex = method.getTimexProcessing().getRecognition().Test(features, models_path + approach + "_rec_timex_" + nlpfile.getLanguage().toUpperCase());
+		String timex = method.getTimexProcessing().getRecognition().Test(features, models_path, approach,"rec_timex", nlpfile.getLanguage().toUpperCase());
 		PipesFile nlpfile_temp = new PipesFile(timex);
-		((PipesFile) nlpfile_temp).isWellFormedOptimist();
+		//((PipesFile) nlpfile_temp).isWellFormedOptimist();
 		timex = PipesFile.IOB2check(nlpfile_temp);
 		
 		Logger.WriteDebug("Recognizing TIMEX3s: "+timex);
@@ -319,13 +323,13 @@ public class TIP {
 
 		output = Classification.get_classik(timex, lang);
 		String timex_class = "";
-		timex_class = method.getTimexProcessing().getRecognition().Test(output, models_path + approach + "_class_timex_" + nlpfile.getLanguage().toUpperCase());
+		timex_class = method.getTimexProcessing().getClassification().Test(output, models_path, approach,"class_timex", nlpfile.getLanguage().toUpperCase());
 		
 
 		Logger.WriteDebug("Normalizing TIMEX3s (DCT=" + dct.get_value() + ") TIMEX: "+ timex + "TIMEX_CLASS" + timex_class);
 
 		output = TimexNormalization.getTIMEN(timex, timex_class, lang);
-		output = method.getTimexProcessing().getNormalization().Test(output, models_path + approach + "_timen_timex_" + nlpfile.getLanguage().toUpperCase());
+		output = method.getTimexProcessing().getNormalization().Test(output, models_path, approach, "timen_timex",  nlpfile.getLanguage().toUpperCase());
 		
 		String timex_norm = TimexNormalization.get_normalized_values(output, lang);
 
@@ -552,9 +556,11 @@ public class TIP {
 				}
 			}
 
-			String features = null;
-			features = PlainTokenFeatures.getFeatures(lang, output, 1, false, "TempEval2-features", approach);
-			NLPFile featuresfile=new PipesFile(features);
+			
+			TokenizedFile features  = PlainTokenFeatures.getFeatures(nlpfile, lang, 1, false, output, approach);
+			features.setType(FilesType.TempEval2_features);
+			File featuresFile = features.toFile();
+			NLPFile featuresfile=new PipesFile(featuresFile.getAbsolutePath());
 			featuresfile.isWellFormatted();
 			featuresfile.setLanguage(lang);
 			String all_merged = ((PipesFile) featuresfile).merge_tok_n_xml(nlpfile.getFile().getCanonicalPath(), "TEXT", ".*", ".*", null);
@@ -586,10 +592,10 @@ public class TIP {
 				String esublinks = categorize_baseline(basefile + ".e-sub-link-features", "BEFORE");
 				ElementFiller.updateLinks(etlinks, edctlinks, emainlinks, esublinks, links);
 			}else{
-				String etlinks = method.getTemporalRelationProcessing().getEvent_timex().Test(basefile + ".e-t-link-features", models_path + approach + "_categ_e-t_" + nlpfile.getLanguage().toUpperCase());
-				String edctlinks = method.getTemporalRelationProcessing().getEvent_DCT().Test(basefile + ".e-dct-link-features", models_path + approach + "_categ_e-dct_" + nlpfile.getLanguage().toUpperCase());
-				String emainlinks = method.getTemporalRelationProcessing().getMain_events().Test(basefile + ".e-main-link-features", models_path + approach + "_categ_e-main_" + nlpfile.getLanguage().toUpperCase());
-				String esublinks = method.getTemporalRelationProcessing().getSubordinate_events().Test(basefile + ".e-sub-link-features", models_path + approach + "_categ_e-sub_" + nlpfile.getLanguage().toUpperCase());
+				String etlinks = method.getTemporalRelationProcessing().getEvent_timex().Test(basefile + ".e-t-link-features", models_path, approach,"categ_e-t", nlpfile.getLanguage().toUpperCase());
+				String edctlinks = method.getTemporalRelationProcessing().getEvent_DCT().Test(basefile + ".e-dct-link-features", models_path, approach, "categ_e-dct", nlpfile.getLanguage().toUpperCase());
+				String emainlinks = method.getTemporalRelationProcessing().getMain_events().Test(basefile + ".e-main-link-features", models_path, approach, "categ_e-main", nlpfile.getLanguage().toUpperCase());
+				String esublinks = method.getTemporalRelationProcessing().getSubordinate_events().Test(basefile + ".e-sub-link-features", models_path, approach,  "categ_e-sub", nlpfile.getLanguage().toUpperCase());
 				ElementFiller.updateLinks(etlinks, edctlinks, emainlinks, esublinks, links);
 			}
 

@@ -9,6 +9,9 @@ import com.cognitionis.nlp_files.NLPFile;
 import com.cognitionis.nlp_files.PipesFile;
 import com.cognitionis.tipsem.helpers.Logger;
 
+import domain.TokenizedFile;
+import domain.FilesType;
+
 public class PlainTokenFeatures extends BaseTokenFeatures {
 
 	   
@@ -24,41 +27,42 @@ public class PlainTokenFeatures extends BaseTokenFeatures {
      *
      * @return outputfilename
      */
-    public static String getFeatures(String lang, String file, int tokenize, boolean clean, String feature_vector, String approach) {
+    public static TokenizedFile getFeatures(NLPFile originalFile, String lang, int tokenize, boolean clean, String fileName, String approach) {
         NLPFile nlpfile = null;
         String output = null;
+        TokenizedFile tFile = new TokenizedFile(FilesType.treetag, lang, originalFile.getFile().getName());
         try {
-            output = file;
+            //output = filePath;
             if (approach.matches("(?i)(TIPSem|TIPSemB)")) 
             {
-                if (feature_vector.matches("(TempEval2-features|(Dynamic|Static)Win-features)")) 
-                {
+              //  if (feature_vector.matches("(TempEval2-features|(Dynamic|Static)Win-features)")) 
+               // {
                     if (approach.equalsIgnoreCase("TIPSem"))
                     {
-                        output = ProcessTipSem(lang, file, tokenize, output);
+                        output = ProcessTipSem(lang, originalFile.getFile().getAbsolutePath(), tokenize, output);
                     } else {    // TIPSem-B
-                        output = ProcessTipSemB(lang, file, tokenize, output);
+                        tFile = ProcessTipSemB(lang, originalFile, tokenize, tFile);
                     }
 
-                } else 
-                {
-                    throw new Exception("Unknown feature vector: " + feature_vector);
-                }
+                //} else 
+                //{
+                //    throw new Exception("Unknown feature vector: " + feature_vector);
+                //}
             } else 
             {
                 throw new Exception("Unknown approach: " + approach);
             }
 
-            if (clean) {
-                Clean(file);
-            }
+          /*  if (clean) {
+                Clean(filePath);
+            }*/
 
 
         } catch (Exception e) {
             Logger.WriteError("Errors found (Experimenter):\n\t" + e.toString() + "\n", e);
             return null;
         }
-        return output;
+        return tFile;
     }
 
 	private static void Clean(String file) {
@@ -78,42 +82,18 @@ public class PlainTokenFeatures extends BaseTokenFeatures {
 		}
 	}
 
-	private static String ProcessTipSemB(String lang, String file, int tokenize, String output) {
-		if (lang.equalsIgnoreCase("EN")) {
-		    
-			Logger.WriteDebug("Executing TREETAG");
-			
-			File f = new File(output + ".treetag");
-			if (!f.exists()) {
-			    output = TreeTagger.run_tok(output);
-			} else 
-			{
-				Logger.WriteDebug(" OMITING");
-			    
-			    output = output + ".treetag";
-			}
-		}
-
-		if (lang.equalsIgnoreCase("ES")) {
-
-			Logger.WriteDebug("Executing Freeling");
-			
-			File f = new File(output + ".freeling");
-			if (!f.exists()) {
-			    output = FreeLing.run(output, lang, tokenize);
-			} else {
-				Logger.WriteDebug(" OMITING");
-			    output = output + ".freeling";
-			}
-		}
+	private static TokenizedFile ProcessTipSemB(String lang, NLPFile filePath, int tokenize, TokenizedFile file) 
+	{
+	
+		file = FreeLing.run(filePath.getFile().getAbsolutePath(), lang, tokenize, file);
 		
-		output = GetLemmaPOS2TempEval2Features(lang, output);
+		file = lemmaPOS2TempEval2_features(file,lang);
 
-		output = GetPairSpecialTemEval2FeaturesFromString(lang, file, output);
-		return output;
+		//output = GetPairSpecialTemEval2FeaturesFromString(lang, file, output);
+		return file;
 	}
 
-	
+	@Deprecated
 	private static String GetPairSpecialTemEval2FeaturesFromString(String lang, String file, String output) {
 		NLPFile nlpfile;
 		nlpfile=new PipesFile(output);
@@ -138,7 +118,7 @@ public class PlainTokenFeatures extends BaseTokenFeatures {
 	}
 
 	private static String ProcessTipSemES(String lang, int tokenize, String output) {
-		NLPFile nlpfile;
+		/*NLPFile nlpfile;
 		Logger.WriteDebug("Executing Freeling");
 		
 		File f = new File(output + ".freeling");
@@ -154,10 +134,11 @@ public class PlainTokenFeatures extends BaseTokenFeatures {
 		output = WN_features(output, lang);
 
 		output = GetLemmaPOS2TempEval2Features(lang, output);
-		return output;
+		return output;*/
+		return null;
 	}
 
-	private static String GetLemmaPOS2TempEval2Features(String lang, String output) {
+/*	private static String GetLemmaPOS2TempEval2Features(String lang, String output) {
 		NLPFile nlpfile;
 		nlpfile = new PipesFile(output);
 		nlpfile.setLanguage(lang);
@@ -166,10 +147,10 @@ public class PlainTokenFeatures extends BaseTokenFeatures {
 		
 		output = lemmaPOS2TempEval2_features((PipesFile) nlpfile, lang);
 		return output;
-	}
+	}*/
 
 	private static String ProcessTipSemEN(String lang, int tokenize, String output) {
-		Logger.WriteDebug("Executing SRL_Roth");
+		/*Logger.WriteDebug("Executing SRL_Roth");
 		
 		File f = new File(output + ".roth");
 		if (!f.exists()) {
@@ -192,7 +173,27 @@ public class PlainTokenFeatures extends BaseTokenFeatures {
 
 		output = WN_features(output, lang);
 		output = roles_features(output, lang);
-		return output;
+		return output;*/
+		
+	/*	NLPFile nlpfile;
+		Logger.WriteDebug("Executing Freeling");
+		
+		File f = new File(output + ".freeling");
+		if (!f.exists()) {
+		    output = FreeLing.run(output, lang, tokenize);
+		} else 
+		{
+			Logger.WriteDebug(" OMITING");
+		    
+		    output = output + ".freeling";
+		}
+
+		output = WN_features(output, lang);
+
+		output = GetLemmaPOS2TempEval2Features(lang, output);
+				//roles_features(output, lang);
+		return output;*/
+		return null;
 	}
 
 }

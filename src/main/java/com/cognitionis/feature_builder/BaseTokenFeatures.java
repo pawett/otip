@@ -5,9 +5,11 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Queue;
 
 import com.cognitionis.external_tools.FreeLing;
 import com.cognitionis.external_tools.SRL_Roth;
@@ -22,6 +24,9 @@ import com.cognitionis.nlp_files.parentical_parsers.SyntColParser;
 import com.cognitionis.tipsem.helpers.Logger;
 import com.cognitionis.utils_basickit.FileUtils;
 import com.cognitionis.utils_basickit.StringUtils;
+
+import domain.*;
+
 
 public class BaseTokenFeatures {
 
@@ -293,7 +298,488 @@ public class BaseTokenFeatures {
      *
      * @return outputfilename
      */
-    public static String lemmaPOS2TempEval2_features(PipesFile pipesfile, String lang) {
+    public static TokenizedFile lemmaPOS2TempEval2_features(TokenizedFile file, String lang) {
+    	// String outputfile = pipesfile.getFile().toString() + "-POS2";
+    	int numline = 0;
+    	file.setType(FilesType.treetag_POS2);
+    	try {
+    		// BufferedReader pipesreader = new BufferedReader(new FileReader(pipesfile.getFile()));
+    		// BufferedWriter outfile = new BufferedWriter(new FileWriter(outputfile));
+
+    		// int wordcolumn = pipesfile.getColumn("word");
+    		// int poscolumn = pipesfile.getColumn("pos");
+    		// int lemmacolumn = pipesfile.getColumn("lemma");
+    		// int wncolumn = pipesfile.getColumn("wn");
+    		int wordposition = 0;
+
+    		ArrayList<Word> sentence = null;
+    		ArrayList<String[]> verbs = null;
+    		ArrayList<String[]> ppdetail = null;
+
+     		
+
+    		String line;
+    		int numsent = 0;
+    		//  while ((line = pipesreader.readLine()) != null) 
+    		for(TokenizedSentence sentenceInFile : file)
+    		{
+    			for(Word token : sentenceInFile)             
+    			{
+	    			numline++;
+	    			wordposition++; 				
+
+    				if (sentence == null) {
+    					sentence = new ArrayList();
+    					verbs = new ArrayList<String[]>(); // position, lemma, tense, assertype
+    					ppdetail = new ArrayList<String[]>(); // start, end, text
+    					wordposition = 1;
+    				}
+
+    			//	sentence.add(token);
+
+    				if (token.pos.startsWith("V"))
+    				{ 	
+    					token = ProcessVerbs(lang, token, wordposition, verbs);
+    				}
+    		  }
+    			
+    			int numtok = 0;
+				int nextverbpositioncover = -1;
+				int nextverb = 1;
+				wordposition = -1;
+				String tense = "-";
+				String assertype ="-";
+				String verb[];
+				String depverb = "-";
+				if (verbs.size() != 0) 
+				{
+					verb = verbs.get(0);
+					wordposition = Integer.parseInt(verb[0]);
+					tense = verb[2];
+					assertype = verb[3];
+					depverb = verb[1];
+					if (verbs.size() > 1) {
+						nextverbpositioncover = Integer.parseInt(verbs.get(1)[0]);
+						nextverbpositioncover = wordposition + (int) Math.ceil((nextverbpositioncover - wordposition) / 2.0);
+					}
+				}
+				
+				String pp = "-";
+				Word previousToken = null;
+				int pos = 0;
+				for(Word token : sentenceInFile)             
+    			{
+					wordposition = ProcessSentence(lang, token, previousToken, wordposition, sentence, verbs, numtok, nextverbpositioncover, nextverb, tense,assertype, depverb, pp);
+    			}
+				/*for (int i = 0; i < sentence.size(); i++) 
+				{
+					Word tok = sentence.get(i);
+					wordposition = ProcessSentence(lang, tok, previousToken, wordposition, sentence, verbs, numtok, nextverbpositioncover, nextverb, tense,
+							assertype, depverb, pp);
+					returnFile.addLine(tok);
+					previousToken = tok;
+				}*/
+				// outfile.write("\n");
+				numsent++;
+				sentence = null;
+    		}
+
+    		// IF LAST SENTENCE DOES NOT ENDED CORRECTLY
+    		/* if (sentence != null) {
+                    ProcessNotEndedCorrectlySentence(lang, outfile, wordcolumn, poscolumn, lemmacolumn, wncolumn,
+							sentence, verbs, numsent);
+                }*/
+
+
+    	} catch (Exception e) {
+    		Logger.WriteError("Errors found (TIMEE):\n\t" + e.toString() + " (line " + numline + ")\n", e);
+    		System.exit(1);
+    		return null;
+    	}
+    	return file;
+    }
+
+	private static void ProcessNotEndedCorrectlySentence(String lang, BufferedWriter outfile, int wordcolumn,
+			int poscolumn, int lemmacolumn, int wncolumn, ArrayList<String> sentence, ArrayList<String[]> verbs,
+			int numsent) throws IOException {
+		int wordposition;
+		String[] linearr;
+		String tense = "-";
+		String assertype = "-";
+		int numtok = 0;
+		int nextverbpositioncover = -1;
+		int nextverb = 1;
+		wordposition = -1;
+		String verb[];
+		String depverb = "-";
+		if (verbs.size() != 0) {
+		    verb = verbs.get(0);
+		    wordposition = Integer.parseInt(verb[0]);
+		    tense = verb[2];
+		    assertype = verb[3];
+		    depverb = verb[1];
+		    if (verbs.size() > 1) {
+		        nextverbpositioncover = Integer.parseInt(verbs.get(1)[0]);
+		        nextverbpositioncover = wordposition + ((nextverbpositioncover - wordposition) / 2);
+		    }
+		}
+		for (int i = 0; i < sentence.size(); i++) {
+		    String sline = sentence.get(i);
+		    linearr = sline.split("\\|");
+		    numtok++;
+		    String simplepos = linearr[poscolumn];
+		    String simplelemma = linearr[lemmacolumn];
+		    String pp = "-";
+		    if (linearr[poscolumn].matches("(IN|TO)")) {
+		        // if pp is just after end of last one is a multi-pp (2word)
+		        if (!pp.equals("-") && i > 0 && sentence.get(i - 1).split("\\|")[poscolumn].matches("(IN|TO)")) {
+		            pp += "_" + linearr[wordcolumn];
+		        } else {
+		            pp += linearr[wordcolumn];
+		        }
+		    }
+		    if (linearr[poscolumn].startsWith("V")) {
+		        pp = "-";
+		    }
+		    if (lang.equalsIgnoreCase("es")) {
+		        if (simplepos.length() > 2) {
+		            if (simplepos.startsWith("V")) {
+		                simplepos = simplepos.substring(0, 4);
+		            } else {
+		                if (simplepos.startsWith("N")) {
+		                    simplepos = simplepos.substring(0, 2) + simplepos.substring(3, 4); // N (Common or Proper) (S or Plural)
+		                } else {
+		                    simplepos = simplepos.substring(0, 2);
+		                }
+		            }
+		        }
+		        if (linearr[wordcolumn].matches("([0-9]+[0-9./:,-]*|" + NUMEK.numbers_re_ES + ")")) {
+		            simplepos = "CD";
+		        }
+		    }
+
+		    if (lang.equalsIgnoreCase("en")) {
+		        if (!simplepos.matches("(?i)(NP|NPS|NNP|NNPS)")) {
+		            simplelemma = simplelemma.toLowerCase(); // lemma to lower case
+		        }
+		    }
+
+		    if (numtok == nextverbpositioncover) {
+		        verb = verbs.get(nextverb);
+		        nextverb++;
+		        wordposition = Integer.parseInt(verb[0]);
+		        tense = verb[2];
+		        assertype = verb[3];
+		        depverb = verb[1];
+		        if (verbs.size() > (nextverb)) {
+		            nextverbpositioncover = Integer.parseInt(verbs.get(nextverb)[0]);
+		            nextverbpositioncover = wordposition + ((nextverbpositioncover - wordposition) / 2);
+		        }
+		    }
+
+		    if (wncolumn == -1) {
+		        outfile.write(linearr[wordcolumn] + "|" + simplepos + "|siob|st|sy|-|" + simplelemma + "|wn|rc|sriob|sriobv|sr|" + depverb + "|" + tense + "|" + assertype + "|iobph|php|phi|" + pp + "\n");
+		    } else {
+		        outfile.write(linearr[wordcolumn] + "|" + simplepos + "|siob|st|sy|-|" + simplelemma + "|" + linearr[wncolumn] + "|rc|sriob|sriobv|sr|" + depverb + "|" + tense + "|" + assertype + "|iobph|php|phi|" + pp + "\n");
+		    }
+		}
+		outfile.write("\n");
+		numsent++;
+		sentence = null;
+	}
+
+	private static int ProcessSentence(String lang, Word token, Word previousToken, int wordposition, ArrayList<Word> sentence, ArrayList<String[]> verbs,
+			int numtok, int nextverbpositioncover, int nextverb, String tense, String assertype, String depverb,
+			String pp) throws IOException {
+		String[] linearr;
+		String[] verb;
+			
+		numtok++;	
+
+		if (token.pos.matches("(IN|TO)")) {
+		    // if pp is just after end of last one is a multi-pp (2word)
+		    if (!pp.equals("-") && previousToken != null && previousToken.pos.matches("(IN|TO)")) {
+		        pp += "_" + token.word;
+		    } else {
+		        pp += token.word;
+		    }
+		}
+		if (token.pos.startsWith("V")) {
+		    pp = "-";
+		}
+
+
+		if (lang.equalsIgnoreCase("es")) 
+		{
+		    ProcessSentenceSpanish(token);
+		}
+
+		if (lang.equalsIgnoreCase("en")) {
+		    ProcessSentenceEnglish(token);
+		}
+
+		if (numtok == nextverbpositioncover) {
+		    verb = verbs.get(nextverb);
+		    nextverb++;
+		    wordposition = Integer.parseInt(verb[0]);
+		    tense = verb[2];
+		    assertype = verb[3];
+		    depverb = verb[1];
+		    if (verbs.size() > (nextverb)) {
+		        nextverbpositioncover = Integer.parseInt(verbs.get(nextverb)[0]);
+		        nextverbpositioncover = wordposition + (int) Math.ceil((nextverbpositioncover - wordposition) / 2);
+		    }
+		}
+		
+
+		 token.syntbio = "siob";
+			token.sentence = "st";
+			token.synt = "sy";
+			token.verb = "-";
+			token.roleconf = "rc";
+			token.simplerolesIOB2 = "sriob";
+			token.simplerolesIOB2_verb = "sriobv";
+			token.simpleroles = "sr";
+			token.depverb = depverb;
+			token.tense = tense;
+			token.assertype = assertype;
+			token.iobmainphrase ="iobph";
+			token.mainp_position = "php";
+			token.phra_id = "phi";
+			token.PPdetail = pp;
+		
+			if (token.wn == null || token.wn == "-") 
+			token.wn ="wn";
+
+		
+		return wordposition;
+	}
+
+	private static void ProcessSentenceEnglish(Word token) {
+		if (!token.pos.matches("(?i)(NP|NPS|NNP|NNPS)")) {
+			token.lemma = token.lemma.toLowerCase(); // lemma to lower case
+		}
+	}
+
+	private static void ProcessSentenceSpanish(Word token) {
+		if (token.pos.length() > 2) {
+		    if (token.pos.startsWith("V")) {
+		    	token.pos = token.pos.substring(0, 4);
+		    } else {
+		        if (token.pos.startsWith("N")) {
+		        	token.pos = token.pos.substring(0, 2) + token.pos.substring(3, 4); // N (Common or Proper) (S or Plural)
+		        } else {
+		        	token.pos = token.pos.substring(0, 2);
+		        }
+		    }
+		}
+		if (token.word.matches("([0-9]+[0-9./:,-]*|" + NUMEK.numbers_re_ES + ")")) {
+			token.pos = "CD";
+		}
+	}
+    
+	private static Word ProcessVerbs(String lang, Word token, int wordposition,
+			ArrayList<String[]> verbs) 
+	{
+		String tense = "-";
+		String assertype = "-";
+		String auxiliary = "-";
+		if (lang.equalsIgnoreCase("es")) 
+		{ // Freeling tenses
+		    String FreelingTense = token.pos.substring(1, 4); // 0 type, 1 mode, 2 time
+		    //if (FreelingTense.charAt(0) == 'M') { // only main verbs
+		    if (FreelingTense.charAt(0) == 'A' || FreelingTense.charAt(0) == 'S') {
+		        auxiliary = "1";
+		    }
+		    if (FreelingTense.charAt(1) == 'G') { // gerundio
+		        if (token.prev.word.matches("(?:est(?:oy|ás|á|amos|áis|án|é|és|emos|éis|én))")) {
+		            tense = "present-continuous";
+		        } else {
+		            if (token.prev.word.matches("(estaba(?:s|n|is)?|estábamos|estuvie(?:ra|se)(?:s|n|is)?|estuvié(?:ra|se)mos)")) {
+		                tense = "past-continuous";
+		            } else {
+		                if (token.prev.word.equals("estado") && token.prev.prev.word.matches("(?:he|has|ha|hemos|habéis|han)")) {
+		                    tense = "present-perfect-compound-continuous";
+		                } else {
+		                    if (token.prev.word.equals("estado") && token.prev.prev.word.matches("había(?:s|n|mos|is)?")) {
+		                        tense = "past-perfect-compound-continuous";
+		                    }
+		                }
+		            }
+		        }
+		    } else {
+		        if (FreelingTense.charAt(1) == 'P') { // participio
+		            if (token.prev.word.matches("(?:he|has|ha|hemos|habéis|han)") || (token.prev.word.equals("sido") && token.prev.prev.word.matches("(?:he|has|ha|hemos|habéis|han)"))) {
+		                tense = "present-perfect-compound";
+		            } else {
+		                if (token.prev.word.matches("había(?:s|n|mos|is)?") || (token.prev.word.equals("sido") && token.prev.prev.word.matches("había(?:s|n|mos|is)?"))) {
+		                    tense = "past-perfect-compound";
+		                }
+		                // there's another rare case (han estado siendo transportados...) but is lingusitically obscure...
+		            }
+		        } else {
+		            if (FreelingTense.charAt(1) == 'I' || FreelingTense.charAt(1) == 'S' || FreelingTense.charAt(1) == 'M') { // INDICATIVE, SUBJUNCTIVE, IMPERATIVE ...DISCARD INFINITVE...
+		                if (FreelingTense.charAt(2) == 'P') {
+		                    tense = "present";
+		                } else {
+		                    if (FreelingTense.charAt(2) == 'I') {
+		                        tense = "past-imperfect";
+		                    } else {
+		                        if (FreelingTense.charAt(2) == 'S') {
+		                            tense = "past-perfect-simple";
+		                        } else {
+		                            if (FreelingTense.charAt(2) == 'F') {
+		                                tense = "future";
+		                            } else {
+		                                if (FreelingTense.charAt(2) == 'C') {
+		                                    tense = "conditional";
+		                                }
+		                            }
+		                        }
+
+		                    }
+		                }
+		            }
+		            // hack for Spanish infinitives: NOT useful since we loose the tense of the sentence
+		            /*else{
+		                if (FreelingTense.charAt(1) == 'N'){
+		                    tense = "present"; // generic infinitive verbs... (we can decide what to do with them)
+		                }
+		            }*/
+		        }
+		    }
+		    //}
+
+		    if (!tense.equals("-")) {
+
+		        if (token.prev.word.matches("(no|nunca|jamas)") || (token.prev.word.matches("(se|me|nos|os|fu.+|he|has|ha|hemos|habéis|han|había(?:s|n|mos|is)?)") &&
+		        		(token.prev.prev.word.matches("(no|nunca|jamás)") || token.prev.prev.prev.word.matches("(no|nunca|jamás)")))) {
+		            assertype = "negative";
+		        } else {
+		            assertype = "positive";
+		        }
+		    }
+
+		} else { // en -- Treetager tenses
+
+		    // TODO falta todo lo de being (is being constructed)
+
+
+		    if (token.lemma.matches("(?:have|be|go|do)")) {
+		        auxiliary = "1";
+		    }
+
+		    if (tense.equals("-") && (token.prev.word.matches("(?:.*ed|(?:was|were|did)(?:n't)?|been)") ||
+		    		(token.prev.prev.word.matches("(?:.*ed|was|were|did|been)") &&
+		    				(token.prev.word.equals("to") || token.prev.word.matches("(not|n't)"))))) {
+		        tense = "past";
+		    } // TODO might be continuous
+		    if (token.prev.word.matches("had(n't)?") || 
+		    		(token.prev.prev.word.equals("had") && 
+		    				token.prev.word.matches("(not|n't|to)"))) {
+		        tense = "past-perfect";
+		    }
+		    if (token.prev.word.matches("(have|has|'ve)(n't)?") ||
+		    		(token.prev.prev.word.matches("(have|has|'ve)") &&
+		    				token.prev.word.matches("(not|n't|to)"))) {
+		        tense = "present-perfect";
+		    }
+		    if (tense.equals("-") && token.prev.prev.prev.word.matches("(will|wo)") && 
+		    		token.prev.prev.word.matches("(not|n't|have)") &&
+		    		token.prev.word.equals("be|to")) {
+		        tense = "future";
+		    }
+		    if (tense.equals("-") && token.prev.prev.prev.word.equals("will") &&
+		    		token.prev.prev.word.equals("have") && token.prev.word.equals("to")) {
+		        tense = "future";
+		    }
+		    // generic hack for futures like will start crying, will start to cry, will|won't have to/be
+		    if (tense.equals("-") && (token.prev.word.equals("will") ||
+		    		token.prev.word.equals("won't") || 
+		    		token.prev.prev.word.equals("will") ||
+		    		token.prev.prev.prev.word.equals("will") || 
+		    		(token.prev.prev.prev.word.equals("wo") && 
+		    				token.prev.prev.word.equals("n't")) || 
+		    		(token.prev.prev.word.equals("wo") && token.prev.word.equals("n't")))) {
+		        tense = "future";
+		    }
+		    if (tense.equals("-") && 
+		    		token.prev.prev.word.equals("going") && token.prev.word.matches("to")) {
+		        tense = "future";
+		    }
+		    if (tense.equals("-") && 
+		    		(token.prev.word.matches("(?:would|may|might|should|must)") || 
+		    				((token.prev.prev.word.matches("(?:would|may|might|should|must)") ||
+		    						token.prev.prev.word.matches("(?:would|should)n't")) && 
+		    						token.prev.word.matches("(?:not|n't|be|would(?:n't)?)")) ||
+		    				token.prev.prev.prev.word.matches("(?:would|may|might|should|must)") &&
+		    				token.prev.prev.word.matches("(?:not|n't)") && token.prev.word.equals("be"))) {
+		        tense = "conditional";
+		    }
+
+		    // super-hack for not geting past tenses from suposed that to be finished...
+		    if (token.prev.word.matches("be")) {
+		        tense = "present";
+		    }
+
+		    if (tense.equals("-") && (token.prev.word.matches("(?:is|are|do)(?:n't)?") ||
+		    		(token.prev.prev.word.matches("(?:is|are|do)") && 
+		    				token.prev.word.matches("(?:not|n't)")))) {
+		        tense = "present";
+		    } // TODO might be continuous
+
+
+		    if (tense.equals("-") && (token.pos.matches("VB(?:D|N)") || (token.pos.equals("AUX") &&
+		    		token.word.matches("(?i)(?:was|were)")))) {
+		        tense = "past";
+		    }
+		    if (tense.equals("-") && (token.pos.matches("VB(?:P|Z)") || (token.pos.equals("AUX") &&
+		    		token.word.matches("(?i)(?:was|were)")))) {
+		        tense = "present";
+		    }
+		    if (tense.equals("-") && (token.pos.equals("VBG"))) { // can be improved...
+		        tense = "present";
+		    }
+
+		    // ignoring possessive 's
+		    if(token.word.equalsIgnoreCase("'s")
+		            && !token.prev.pos.equalsIgnoreCase("PP")){
+		        tense="-";
+		    }
+
+
+		    if (!tense.equals("-")) {
+		        if (token.prev.word.matches("(?:.*n't|not|never)") || 
+		        		(token.prev.prev.word.matches("(?:.*n't|not|never)")) || 
+		        		(token.prev.prev.prev.word.equals("not") && 
+		        				token.prev.prev.word.equals("going") && token.prev.word.equals("to"))) {
+		            assertype = "negative";
+		        } else {
+		            assertype = "positive";
+		        }
+		    }
+
+		}
+
+		if (!tense.equals("-")) {
+		    if (!tense.endsWith("-continuous") && (lang.equalsIgnoreCase("en") && 
+		    		token.word.endsWith("ing") || lang.equalsIgnoreCase("es") &&
+		    		token.word.endsWith("ndo"))) {
+		        tense += "-continuous";
+		    }
+		    //System.out.println(linearr[lemmacolumn] + "/"+wordposition);
+		    String[] verb = {"" + wordposition, token.lemma, tense, assertype, auxiliary};
+		    if (verbs.size() > 0 && (verbs.get(verbs.size() - 1)[4].equals("1") && (wordposition - Integer.parseInt((verbs.get(verbs.size() - 1)[0]))) < 5)) {
+		        //System.out.println("yes");
+		        verbs.remove(verbs.size() - 1);
+		    }
+		    verbs.add(verb);
+		}
+		token.tense = tense;
+		return token;
+	}
+
+    /*public static String lemmaPOS2TempEval2_featuresOld(PipesFile pipesfile, String lang) {
         String outputfile = pipesfile.getFile().toString() + "-POS2";
         int numline = 0;
         try {
@@ -345,168 +831,14 @@ public class BaseTokenFeatures {
 
                         sentence.add(line);
 
-                        if (linearr[poscolumn].startsWith("V")) {
-                            if (lang.equalsIgnoreCase("es")) { // Freeling tenses
-                                String FreelingTense = linearr[poscolumn].substring(1, 4); // 0 type, 1 mode, 2 time
-                                //if (FreelingTense.charAt(0) == 'M') { // only main verbs
-                                if (FreelingTense.charAt(0) == 'A' || FreelingTense.charAt(0) == 'S') {
-                                    auxiliary = "1";
-                                }
-                                if (FreelingTense.charAt(1) == 'G') { // gerundio
-                                    if (wordmem[1].matches("(?:est(?:oy|ás|á|amos|áis|án|é|és|emos|éis|én))")) {
-                                        tense = "present-continuous";
-                                    } else {
-                                        if (wordmem[1].matches("(estaba(?:s|n|is)?|estábamos|estuvie(?:ra|se)(?:s|n|is)?|estuvié(?:ra|se)mos)")) {
-                                            tense = "past-continuous";
-                                        } else {
-                                            if (wordmem[1].equals("estado") && wordmem[2].matches("(?:he|has|ha|hemos|habéis|han)")) {
-                                                tense = "present-perfect-compound-continuous";
-                                            } else {
-                                                if (wordmem[1].equals("estado") && wordmem[2].matches("había(?:s|n|mos|is)?")) {
-                                                    tense = "past-perfect-compound-continuous";
-                                                }
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    if (FreelingTense.charAt(1) == 'P') { // participio
-                                        if (wordmem[1].matches("(?:he|has|ha|hemos|habéis|han)") || (wordmem[1].equals("sido") && wordmem[2].matches("(?:he|has|ha|hemos|habéis|han)"))) {
-                                            tense = "present-perfect-compound";
-                                        } else {
-                                            if (wordmem[1].matches("había(?:s|n|mos|is)?") || (wordmem[1].equals("sido") && wordmem[2].matches("había(?:s|n|mos|is)?"))) {
-                                                tense = "past-perfect-compound";
-                                            }
-                                            // there's another rare case (han estado siendo transportados...) but is lingusitically obscure...
-                                        }
-                                    } else {
-                                        if (FreelingTense.charAt(1) == 'I' || FreelingTense.charAt(1) == 'S' || FreelingTense.charAt(1) == 'M') { // INDICATIVE, SUBJUNCTIVE, IMPERATIVE ...DISCARD INFINITVE...
-                                            if (FreelingTense.charAt(2) == 'P') {
-                                                tense = "present";
-                                            } else {
-                                                if (FreelingTense.charAt(2) == 'I') {
-                                                    tense = "past-imperfect";
-                                                } else {
-                                                    if (FreelingTense.charAt(2) == 'S') {
-                                                        tense = "past-perfect-simple";
-                                                    } else {
-                                                        if (FreelingTense.charAt(2) == 'F') {
-                                                            tense = "future";
-                                                        } else {
-                                                            if (FreelingTense.charAt(2) == 'C') {
-                                                                tense = "conditional";
-                                                            }
-                                                        }
-                                                    }
-
-                                                }
-                                            }
-                                        }
-                                        // hack for Spanish infinitives: NOT useful since we loose the tense of the sentence
-                                        /*else{
-                                            if (FreelingTense.charAt(1) == 'N'){
-                                                tense = "present"; // generic infinitive verbs... (we can decide what to do with them)
-                                            }
-                                        }*/
-                                    }
-                                }
-                                //}
-
-                                if (!tense.equals("-")) {
-
-                                    if (wordmem[1].matches("(no|nunca|jamas)") || (wordmem[1].matches("(se|me|nos|os|fu.+|he|has|ha|hemos|habéis|han|había(?:s|n|mos|is)?)") && (wordmem[2].matches("(no|nunca|jamás)") || wordmem[3].matches("(no|nunca|jamás)")))) {
-                                        assertype = "negative";
-                                    } else {
-                                        assertype = "positive";
-                                    }
-                                }
-
-                            } else { // en -- Treetager tenses
-
-                                // TODO falta todo lo de being (is being constructed)
-
-
-                                if (linearr[lemmacolumn].matches("(?:have|be|go|do)")) {
-                                    auxiliary = "1";
-                                }
-
-                                if (tense.equals("-") && (wordmem[1].matches("(?:.*ed|(?:was|were|did)(?:n't)?|been)") || (wordmem[2].matches("(?:.*ed|was|were|did|been)") && (wordmem[1].equals("to") || wordmem[1].matches("(not|n't)"))))) {
-                                    tense = "past";
-                                } // TODO might be continuous
-                                if (wordmem[1].matches("had(n't)?") || (wordmem[2].equals("had") && wordmem[1].matches("(not|n't|to)"))) {
-                                    tense = "past-perfect";
-                                }
-                                if (wordmem[1].matches("(have|has|'ve)(n't)?") || (wordmem[2].matches("(have|has|'ve)") && wordmem[1].matches("(not|n't|to)"))) {
-                                    tense = "present-perfect";
-                                }
-                                if (tense.equals("-") && wordmem[3].matches("(will|wo)") && wordmem[2].matches("(not|n't|have)") && wordmem[1].equals("be|to")) {
-                                    tense = "future";
-                                }
-                                if (tense.equals("-") && wordmem[3].equals("will") && wordmem[2].equals("have") && wordmem[1].equals("to")) {
-                                    tense = "future";
-                                }
-                                // generic hack for futures like will start crying, will start to cry, will|won't have to/be
-                                if (tense.equals("-") && (wordmem[1].equals("will") || wordmem[1].equals("won't") || wordmem[2].equals("will") || wordmem[3].equals("will") || (wordmem[3].equals("wo") && wordmem[2].equals("n't")) || (wordmem[2].equals("wo") && wordmem[1].equals("n't")))) {
-                                    tense = "future";
-                                }
-                                if (tense.equals("-") && wordmem[2].equals("going") && wordmem[1].matches("to")) {
-                                    tense = "future";
-                                }
-                                if (tense.equals("-") && (wordmem[1].matches("(?:would|may|might|should|must)") || ((wordmem[2].matches("(?:would|may|might|should|must)") || wordmem[2].matches("(?:would|should)n't")) && wordmem[1].matches("(?:not|n't|be|would(?:n't)?)")) || wordmem[3].matches("(?:would|may|might|should|must)") && wordmem[2].matches("(?:not|n't)") && wordmem[1].equals("be"))) {
-                                    tense = "conditional";
-                                }
-
-                                // super-hack for not geting past tenses from suposed that to be finished...
-                                if (wordmem[1].matches("be")) {
-                                    tense = "present";
-                                }
-
-                                if (tense.equals("-") && (wordmem[1].matches("(?:is|are|do)(?:n't)?") || (wordmem[2].matches("(?:is|are|do)") && wordmem[1].matches("(?:not|n't)")))) {
-                                    tense = "present";
-                                } // TODO might be continuous
-
-
-                                if (tense.equals("-") && (linearr[poscolumn].matches("VB(?:D|N)") || (linearr[poscolumn].equals("AUX") && wordmem[0].matches("(?i)(?:was|were)")))) {
-                                    tense = "past";
-                                }
-                                if (tense.equals("-") && (linearr[poscolumn].matches("VB(?:P|Z)") || (linearr[poscolumn].equals("AUX") && wordmem[0].matches("(?i)(?:was|were)")))) {
-                                    tense = "present";
-                                }
-                                if (tense.equals("-") && (linearr[poscolumn].equals("VBG"))) { // can be improved...
-                                    tense = "present";
-                                }
-
-                                // ignoring possessive 's
-                                if(linearr[wordcolumn].equalsIgnoreCase("'s")
-                                        && !posmem[1].equalsIgnoreCase("PP")){
-                                    tense="-";
-                                }
-
-
-                                if (!tense.equals("-")) {
-                                    if (wordmem[1].matches("(?:.*n't|not|never)") || (wordmem[2].matches("(?:.*n't|not|never)")) || (wordmem[3].equals("not") && wordmem[2].equals("going") && wordmem[1].equals("to"))) {
-                                        assertype = "negative";
-                                    } else {
-                                        assertype = "positive";
-                                    }
-                                }
-
-                            }
-
-                            if (!tense.equals("-")) {
-                                if (!tense.endsWith("-continuous") && (pipesfile.getLanguage().equalsIgnoreCase("en") && linearr[wordcolumn].endsWith("ing") || pipesfile.getLanguage().equalsIgnoreCase("es") && linearr[wordcolumn].endsWith("ndo"))) {
-                                    tense += "-continuous";
-                                }
-                                //System.out.println(linearr[lemmacolumn] + "/"+wordposition);
-                                String[] verb = {"" + wordposition, linearr[lemmacolumn], tense, assertype, auxiliary};
-                                if (verbs.size() > 0 && (verbs.get(verbs.size() - 1)[4].equals("1") && (wordposition - Integer.parseInt((verbs.get(verbs.size() - 1)[0]))) < 5)) {
-                                    //System.out.println("yes");
-                                    verbs.remove(verbs.size() - 1);
-                                }
-                                verbs.add(verb);
-                            }
+                        if (linearr[poscolumn].startsWith("V"))
+                        {
+                        	
+                            ProcessVerbs(pipesfile, lang, wordcolumn, poscolumn, lemmacolumn, wordposition, verbs,
+									wordmem, posmem, linearr, tense, assertype, auxiliary);
                         }
 
-
+//The info of the token is fewer than the parameters expected (End of sentence??)
                     } else {
                         int numtok = 0;
                         int nextverbpositioncover = -1;
@@ -701,7 +1033,8 @@ public class BaseTokenFeatures {
             return null;
         }
         return outputfile;
-    }
+    }*/
+
 
     /**
      * Returns the input file, plus one column only filled for each verb
@@ -1719,6 +2052,7 @@ public class BaseTokenFeatures {
         return outputfile;
     }
 
+    @Deprecated
     public static String GetPairSpecialTempEval2_features(PipesFile pipesfile, String plainmodel) {
         String outputfile = null;
         int linen = 0;
@@ -1731,7 +2065,7 @@ public class BaseTokenFeatures {
                     filename = pipesfile.getFile().getAbsolutePath().substring(pipesfile.getFile().getCanonicalPath().lastIndexOf('/') + 1, pipesfile.getFile().getAbsolutePath().lastIndexOf(".roth"));
                     usingNotUTF8tool = true;
                 } else {
-                    filename = pipesfile.getFile().getAbsolutePath().substring(pipesfile.getFile().getCanonicalPath().lastIndexOf('/') + 1, pipesfile.getFile().getAbsolutePath().lastIndexOf(".treetag"));
+                    filename = pipesfile.getFile().getAbsolutePath().substring(pipesfile.getFile().getCanonicalPath().lastIndexOf('/') + 1, pipesfile.getFile().getAbsolutePath().lastIndexOf(".freeling"));
                 }
             }
             if (pipesfile.getLanguage().equalsIgnoreCase("ES")) {

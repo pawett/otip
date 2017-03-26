@@ -66,7 +66,7 @@ public class TabTokenFeatures extends BaseTokenFeatures {
 	}
 
 	private static void ProcessTabTipSemB_ES(String lang, String output) {
-		NLPFile nlpfile;
+		/*NLPFile nlpfile;
 		nlpfile = new PipesFile(output);
 		nlpfile.setLanguage(lang);
 		((PipesFile) nlpfile).isWellFormedOptimist();
@@ -102,10 +102,11 @@ public class TabTokenFeatures extends BaseTokenFeatures {
 		}
 		output = ((PipesFile) nlpfile).pair_pipes_by_column_JOIN(0, model, 3);
 		output = FileUtils.renameTo(output, "\\.TempEval-bs\\.word\\.freeling-POS2\\.paired", "\\.TempEval2-features");
+		*/
 	}
 
 	private static String ProcessTabTimSemB_EN(String lang, String output) {
-		NLPFile nlpfile;
+		/*NLPFile nlpfile;
 		nlpfile = new PipesFile(output);
 		nlpfile.setLanguage(lang);
 		((PipesFile) nlpfile).isWellFormedOptimist();
@@ -141,11 +142,11 @@ public class TabTokenFeatures extends BaseTokenFeatures {
 		}
 		output = ((PipesFile) nlpfile).pair_pipes_by_column_JOIN(0, model, 3);
 		output = FileUtils.renameTo(output, "\\.TempEval-bs\\.word\\.treetag-POS2\\.paired", "\\.TempEval2-features");
-		return output;
+		*/return output;
 	}
 
 	private static void ProcessTabTipSem(String lang, String file, String feature_vector, String output) {
-		NLPFile nlpfile;
+		/*NLPFile nlpfile;
 		if (lang.equalsIgnoreCase("EN")) {
 		    output = ProcessTabTipSemEN(lang, output);
 		}
@@ -173,11 +174,11 @@ public class TabTokenFeatures extends BaseTokenFeatures {
 		    System.err.println("Executing StaticcWin features");
 		    output = BaseTokenFeatures.getStaticWin((PipesFile) nlpfile);
 		    output = FileUtils.renameTo(output, "\\.TempEval2-features\\.StaticWin-features", "\\.StaticWin-features");
-		}
+		}*/
 	}
 
 	private static String ProcessTabTipSemES(String lang, String file, String output) {
-		NLPFile nlpfile;
+		/*NLPFile nlpfile;
 		nlpfile = new PipesFile(output);
 		nlpfile.setLanguage(lang);
 		File ancora = new File(file.substring(0, file.lastIndexOf(".")) + ".TempEval-bs.plain.roth-treetag");
@@ -229,11 +230,12 @@ public class TabTokenFeatures extends BaseTokenFeatures {
 		    output = FileUtils.renameTo(output, "\\.TempEval-bs\\.word\\.freeling-WNHyps-POS2\\.paired", "\\.TempEval2-features");
 
 		}
-		return output;
+		return output;*/
+		return null;
 	}
 
 	private static String ProcessTabTipSemEN(String lang, String output) {
-		NLPFile nlpfile;
+		/*NLPFile nlpfile;
 		nlpfile = new PipesFile(output);
 		nlpfile.setLanguage(lang);
 		((PipesFile) nlpfile).isWellFormedOptimist();
@@ -271,7 +273,8 @@ public class TabTokenFeatures extends BaseTokenFeatures {
 		    output = ((PipesFile) nlpfile).pair_pipes_by_column_JOIN(0, model, 3);
 		    output = FileUtils.renameTo(output, "\\.TempEval-bs\\.plain\\.roth-treetag-WNHyps-roleconfig-simpleroles-mainphrases\\.paired", "\\.TempEval2-features");
 		}
-		return output;
+		return output;*/
+		return null;
 	}
 
 }
